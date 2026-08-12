@@ -1,0 +1,17 @@
+name: wizards
+
+services:
+  api-wizards:
+    build:
+      context: ./backend/api/WizardsApi
+      dockerfile: Dockerfile
+    image: wizards/api:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      # SQLite file inside the container. No volume: the database is discarded
+      # with the container and reseeds on the next start.
+      ConnectionStrings__Wizards: Data Source=/app/data/wizards.db
+    ports:
+      - "5208:8080"
+    restart: unless-stopped

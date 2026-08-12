@@ -1,0 +1,24 @@
+# Local dev overrides. Docker Compose merges this into docker-compose.yml
+# automatically, so `docker compose up` picks it up with no extra flags.
+services:
+  api-wizards:
+    build:
+      dockerfile: Dockerfile.dev
+    image: wizards/api:dev
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Wizards: Data Source=/src/data/wizards.db
+    volumes:
+      # Source bind mount drives `dotnet watch`.
+      - ./backend/api/WizardsApi:/src
+      # Anonymous volumes keep the host's Windows bin/obj from clobbering the
+      # container's Linux build output.
+      - /src/Wizards.Api/bin
+      - /src/Wizards.Api/obj
+      - /src/Wizards.Application/bin
+      - /src/Wizards.Application/obj
+      - /src/Wizards.Domain/bin
+      - /src/Wizards.Domain/obj
+      - /src/Wizards.Infrastructure/bin
+      - /src/Wizards.Infrastructure/obj
+    restart: "no"
