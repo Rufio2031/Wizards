@@ -1,0 +1,7 @@
+@Wizards.Api_HostAddress = http://localhost:5208
+
+### OpenAPI document (development only)
+GET {{Wizards.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
