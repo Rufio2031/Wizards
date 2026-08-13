@@ -30,10 +30,12 @@ namespace Wizards.Infrastructure.Persistence;
 /// <param name="logger">Records what was inserted, so an unexpected insert on a warm database is visible.</param>
 internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSeeder> logger)
 {
-    // TODO: This entry is hand-written because .claude/skills/seed-data/references/data.json, the
-    // source of the game type reference data, is still empty. Take the remaining game types from
-    // there once it is populated. This list is the only place they need to land.
-    private static readonly IReadOnlyList<string> SeedGameTypeNames = ["Magic: The Gathering"];
+    private static readonly IReadOnlyList<string> SeedGameTypeNames =
+    [
+        "Magic: The Gathering",
+        "Yu-Gi-Oh!",
+        "Pokémon TCG"
+    ];
 
     private static readonly StringComparer GameTypeNameComparer = StringComparer.OrdinalIgnoreCase;
 
