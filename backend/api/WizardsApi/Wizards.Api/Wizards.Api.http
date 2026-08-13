@@ -12,18 +12,18 @@ GET {{baseUrl}}/openapi/v1.json
 Accept: application/json
 
 ### Get the first page of events (defaults to skip=0, take=50)
-# Responds with { "events": [ ... ], "totalCount": 3, "skip": 0, "take": 50 }, where totalCount
-# counts every stored event rather than the events on this page.
+# Responds with { "items": [ ... ], "pagination": { "skip": 0, "take": 50, "totalCount": 3 } },
+# where totalCount counts every stored event rather than the events on this page.
 GET {{baseUrl}}/events
 Accept: application/json
 
 ### Get the second page of ten events
-# The echoed skip and take repeat what was asked for: { "events": [ ... ], "totalCount": 3,
-# "skip": 10, "take": 10 }
+# The echoed skip and take repeat what was asked for: { "items": [ ... ], "pagination": {
+# "skip": 10, "take": 10, "totalCount": 3 } }
 GET {{baseUrl}}/events?skip=10&take=10
 Accept: application/json
 
-### Get a page starting past the end (expects 200 with an empty events array, totalCount still set)
+### Get a page starting past the end (expects 200 with an empty items array, totalCount still set)
 GET {{baseUrl}}/events?skip=100000
 Accept: application/json
 
@@ -107,34 +107,5 @@ Accept: application/json
   "endDateTime": null,
   "gameType": { "name": "Warhammer 40,000" }
 }
-
-### Replace an existing event
-PUT {{baseUrl}}/events/{{eventId}}
-Content-Type: application/json
-Accept: application/json
-
-{
-  "name": "Friday Night Magic - Modern",
-  "description": "Format changed to Modern. Weekly in-store tournament.",
-  "startDateTime": "2026-09-18T19:00:00-04:00",
-  "endDateTime": "2026-09-18T23:00:00-04:00",
-  "gameType": { "name": "Magic: The Gathering" }
-}
-
-### Replace an event that does not exist (expects 404 with ProblemDetails)
-PUT {{baseUrl}}/events/00000000-0000-0000-0000-000000000001
-Content-Type: application/json
-Accept: application/json
-
-{
-  "name": "Nothing To Replace",
-  "description": null,
-  "startDateTime": "2026-09-18T19:00:00-04:00",
-  "endDateTime": null,
-  "gameType": { "name": "Magic: The Gathering" }
-}
-
-### Delete an event
-DELETE {{baseUrl}}/events/{{eventId}}
 
 ###

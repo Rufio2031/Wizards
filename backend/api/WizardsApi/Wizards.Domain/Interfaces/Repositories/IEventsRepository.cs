@@ -52,24 +52,4 @@ public interface IEventsRepository
     /// <param name="cancellationToken">Cancels the staging before it completes.</param>
     /// <returns>A task that completes once the insertion is staged.</returns>
     Task AddEventAsync(Event eventEntity, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Stages the replacement of an existing event's stored state.
-    /// </summary>
-    /// <param name="eventEntity">
-    /// The event to update, carrying the primary key it was loaded with.
-    /// </param>
-    /// <param name="cancellationToken">Cancels the staging before it completes.</param>
-    /// <returns>A task that completes once the replacement is staged.</returns>
-    Task UpdateEventAsync(Event eventEntity, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Stages the removal of an existing event.
-    /// </summary>
-    /// <param name="eventEntity">
-    /// The event to delete, carrying the primary key it was loaded with.
-    /// </param>
-    /// <param name="cancellationToken">Cancels the staging before it completes.</param>
-    /// <returns>A task that completes once the removal is staged.</returns>
-    Task DeleteEventAsync(Event eventEntity, CancellationToken cancellationToken);
 }

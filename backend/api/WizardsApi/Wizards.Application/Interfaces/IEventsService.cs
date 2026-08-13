@@ -53,44 +53,7 @@ public interface IEventsService
     /// <see cref="EventErrors.Invalid(string)"/> failure when the requested details break a rule about
     /// what makes a valid event, such as a start date and time that has already passed or an end that
     /// does not fall after the start.
-    /// <see cref="EventErrors.EventNotFound"/> is never returned.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is <see langword="null"/>.</exception>
     Task<EventWriteResult> AddEvent(CreateEventRequest request, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Replaces the details of an existing event.
-    /// </summary>
-    /// <remarks>
-    /// The event is resolved before the game type, so a request that names neither an existing event nor
-    /// a registered game type reports the missing event.
-    /// </remarks>
-    /// <param name="eventId">The identifier of the event to update. Must not be <see cref="Guid.Empty"/>.</param>
-    /// <param name="request">The replacement details, applied in full.</param>
-    /// <param name="cancellationToken">Cancels the write before it completes.</param>
-    /// <returns>
-    /// A result carrying the updated event, one carrying <see cref="EventErrors.EventNotFound"/> when
-    /// no event carries that identifier, one carrying <see cref="EventErrors.GameTypeNotFound"/> when
-    /// no game type is registered under the requested name, or one carrying an
-    /// <see cref="EventErrors.Invalid(string)"/> failure when the replacement details break a rule
-    /// about what makes a valid event, such as a start date and time that has already passed or an end
-    /// that does not fall after the start. Every failure carries no event.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="eventId"/> is <see cref="Guid.Empty"/>.
-    /// </exception>
-    Task<EventWriteResult> UpdateEvent(Guid eventId, UpdateEventRequest request, CancellationToken cancellationToken);
-
-    /// <summary>
-    /// Deletes an event.
-    /// </summary>
-    /// <param name="eventId">The identifier of the event to delete. Must not be <see cref="Guid.Empty"/>.</param>
-    /// <param name="cancellationToken">Cancels the write before it completes.</param>
-    /// <returns>
-    /// <see langword="true"/> when an event was deleted, <see langword="false"/> when no event carried
-    /// that identifier.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="eventId"/> is <see cref="Guid.Empty"/>.</exception>
-    Task<bool> DeleteEvent(Guid eventId, CancellationToken cancellationToken);
 }

@@ -68,26 +68,4 @@ internal sealed class EventsRepository(AppDbContext dbContext) : IEventsReposito
 
         return Task.CompletedTask;
     }
-
-    /// <inheritdoc />
-    public Task UpdateEventAsync(Domain.Entities.Event eventEntity, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(eventEntity);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        dbContext.Events.Update(eventEntity.ToRecord());
-
-        return Task.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    public Task DeleteEventAsync(Domain.Entities.Event eventEntity, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(eventEntity);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        dbContext.Events.Remove(eventEntity.ToRecord());
-
-        return Task.CompletedTask;
-    }
 }

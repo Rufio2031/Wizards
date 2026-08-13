@@ -16,14 +16,6 @@ public static class EventErrors
         "No game type is registered under that name.");
 
     /// <summary>
-    /// No event carries the supplied identifier, so nothing was written.
-    /// </summary>
-    public static readonly ApplicationError EventNotFound = new(
-        ErrorKind.NotFound,
-        "eventId",
-        "No event carries the supplied identifier.");
-
-    /// <summary>
     /// Reports that the supplied details break a rule about what makes a valid event, so nothing was
     /// written.
     /// </summary>
