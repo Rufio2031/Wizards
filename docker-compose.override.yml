@@ -1,26 +1,15 @@
 # Local dev overrides. Docker Compose merges this into docker-compose.yml
 # automatically, so `docker compose up` picks it up with no extra flags.
+#
+# The frontend swaps to the Vite dev server for HMR. The API has no dev layer:
+# it runs the same release image as the base file and is rebuilt on change,
+# so only its environment differs here.
 services:
   api-wizards:
-    build:
-      dockerfile: Dockerfile.dev
-    image: wizards/api:dev
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__Wizards: Data Source=/src/data/wizards.db
-    volumes:
-      # Source bind mount drives `dotnet watch`.
-      - ./backend/api/WizardsApi:/src
-      # Anonymous volumes keep the host's Windows bin/obj from clobbering the
-      # container's Linux build output.
-      - /src/Wizards.Api/bin
-      - /src/Wizards.Api/obj
-      - /src/Wizards.Application/bin
-      - /src/Wizards.Application/obj
-      - /src/Wizards.Domain/bin
-      - /src/Wizards.Domain/obj
-      - /src/Wizards.Infrastructure/bin
-      - /src/Wizards.Infrastructure/obj
+    # The connection string is deliberately not overridden. The container runs
+    # the release image, whose only writable data directory is /app/data.
     restart: "no"
 
   web-wizards:
