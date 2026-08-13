@@ -22,3 +22,15 @@ services:
       - /src/Wizards.Infrastructure/bin
       - /src/Wizards.Infrastructure/obj
     restart: "no"
+
+  web-wizards:
+    build:
+      dockerfile: Dockerfile.dev
+    image: wizards/web:dev
+    volumes:
+      # Source bind mount drives the Vite dev server's HMR.
+      - ./frontend/web:/app
+      # Anonymous volume keeps the host's node_modules from clobbering the
+      # container's Linux-built dependencies.
+      - /app/node_modules
+    restart: "no"

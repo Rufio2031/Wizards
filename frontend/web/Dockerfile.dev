@@ -1,0 +1,12 @@
+# Local development only. Source is bind-mounted over /app by docker-compose.override.yml
+# and the Vite dev server rebuilds on change.
+FROM node:24-alpine
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 5173
+CMD ["npm", "run", "dev"]

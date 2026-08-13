@@ -485,3 +485,5 @@ $RECYCLE.BIN/
 
 # Claude Code
 .claude/
+docs
+CLAUDE.md
