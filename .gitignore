@@ -483,7 +483,13 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
+# SQLite database files. WAL mode adds the -wal and -shm sidecars alongside the database.
+*.db
+*.db-wal
+*.db-shm
+
 # Claude Code
 .claude/
 docs
 CLAUDE.md
+Assessment.md
