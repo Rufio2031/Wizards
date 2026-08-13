@@ -5,8 +5,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using Wizards.Domain.Interfaces.Repositories;
 using Wizards.Infrastructure.Persistence;
 using Wizards.Infrastructure.Persistence.Interceptors;
+using Wizards.Infrastructure.Persistence.Repositories;
 
 namespace Wizards.Infrastructure.Extensions;
 
@@ -23,8 +25,11 @@ public static class ServiceCollectionExtensions
 
     /// <summary>
     /// Registers <see cref="AppDbContext"/> against the SQLite database named by the <c>Wizards</c>
-    /// connection string and attempts to put every connection it opens into write-ahead logging mode
-    /// with a configured wait for contended write locks.
+    /// connection string along with the repositories that read it, the <see cref="IUnitOfWork"/> that
+    /// commits their changes, the seeder that
+    /// <see cref="ServiceProviderExtensions.InitializeDatabaseAsync(IServiceProvider, CancellationToken)"/>
+    /// runs, and attempts to put every connection into write-ahead logging mode with a configured wait
+    /// for contended write locks.
     /// </summary>
     /// <remarks>
     /// The lock wait is read from <c>Sqlite:BusyTimeoutSeconds</c> and defaults to 30 seconds when the
@@ -72,6 +77,11 @@ public static class ServiceCollectionExtensions
             options.UseSqlite(wizardsConnectionString);
             options.AddInterceptors(serviceProvider.GetRequiredService<SqlitePragmaConnectionInterceptor>());
         });
+
+        services.AddScoped<DatabaseSeeder>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IEventsRepository, EventsRepository>();
+        services.AddScoped<IGameTypesRepository, GameTypesRepository>();
 
         return services;
     }

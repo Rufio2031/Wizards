@@ -1,0 +1,59 @@
+namespace Wizards.Infrastructure.Extensions;
+
+/// <summary>
+/// Translates between the event domain entity and its persistence record.
+/// </summary>
+internal static class EventMappingExtensions
+{
+    /// <summary>
+    /// Rehydrates the domain entity a stored event represents.
+    /// </summary>
+    /// <param name="eventRecord">
+    /// The stored event to translate. Its game type must already have been loaded, since the entity
+    /// cannot exist without one.
+    /// </param>
+    /// <returns>The rehydrated event entity, carrying its game type and instants marked UTC.</returns>
+    internal static Domain.Entities.Event ToEntity(this Persistence.Records.Event eventRecord)
+    {
+        ArgumentNullException.ThrowIfNull(eventRecord);
+
+        return Domain.Entities.Event.Reconstitute(
+            eventRecord.Id,
+            eventRecord.PublicId,
+            eventRecord.Name,
+            eventRecord.Description,
+            eventRecord.StartDateTime,
+            eventRecord.EndDateTime,
+            eventRecord.GameType.ToEntity(),
+            eventRecord.RegistrationLimit);
+    }
+
+    /// <summary>
+    /// Projects an event entity onto the record shape the database stores.
+    /// </summary>
+    /// <remarks>
+    /// Only the game type's foreign key is carried across. The navigation is deliberately left unset so
+    /// that saving an event never inserts or updates the game type it points at.
+    /// </remarks>
+    /// <param name="eventEntity">The event to translate.</param>
+    /// <returns>
+    /// A detached record carrying the entity's current state, including its primary key, which is zero
+    /// for an event that has never been persisted.
+    /// </returns>
+    internal static Persistence.Records.Event ToRecord(this Domain.Entities.Event eventEntity)
+    {
+        ArgumentNullException.ThrowIfNull(eventEntity);
+
+        return new Persistence.Records.Event
+        {
+            Id = eventEntity.Id,
+            PublicId = eventEntity.PublicId,
+            Name = eventEntity.Name,
+            Description = eventEntity.Description,
+            GameTypeId = eventEntity.GameType.Id,
+            StartDateTime = eventEntity.StartDateTime,
+            EndDateTime = eventEntity.EndDateTime,
+            RegistrationLimit = eventEntity.RegistrationLimit
+        };
+    }
+}

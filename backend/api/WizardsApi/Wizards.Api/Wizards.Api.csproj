@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <!-- Pinned to override the vulnerable 2.0.0 pulled in transitively (GHSA-v5pm-xwqc-g5wc). -->
     <PackageReference Include="Microsoft.OpenApi" Version="2.11.0" />
   </ItemGroup>
