@@ -25,6 +25,6 @@ TODO
 ## AI Usage Note
 
 <!-- A few sentences: which tools you used and for what, plus one example of AI output you rejected or had to fix. -->
-
+- Project initialization and setup.
 
 TODO
