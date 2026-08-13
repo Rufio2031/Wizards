@@ -88,12 +88,16 @@ Requests flow through four layers, each with one job.
    details turned into an `ApiError`, as network failures are too. Aborts
    propagate unchanged so callers can tell cancelled from failed, and
    `isAbortError` lives here for the callers that need to make that call. It
-   exposes `get` and `post` only, since nothing in scope edits or cancels. An
-   empty body resolves to `undefined`, which the return type states, so call
-   sites have to decide what an empty response means.
+   exposes `get`, `post`, `put`, `patch`, and `delete`. An empty body resolves
+   to `undefined`, which the return type states, so call sites have to decide
+   what an empty response means.
 3. `features/<name>/api/*.ts` owns that feature's endpoint paths and response
-   types, and is where an empty body is turned into that feature's own shape
-   (`eventsApi.list` returns `[]`).
+   types, and decides what an empty body means for that endpoint. A bodyless
+   `GET /events` is a broken response, not an empty list, so `eventsApi.list`
+   raises an `ApiError` and the "no events" state is left to the composable's
+   `initialValue`. `services/http/pagination.ts` holds the `Page<T>` envelope
+   every paged endpoint returns, since it is a transport shape rather than any
+   one feature's.
 4. `composables/useAsyncRequest.ts` owns the request lifecycle: loading, error,
    abort on re-fetch and on scope disposal, and a newest-run-wins guard. Feature
    composables such as `features/events/composables/useEvents.ts` build on it,

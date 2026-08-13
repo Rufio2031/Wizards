@@ -11,11 +11,6 @@ import { RouteNames } from '@/router/routeNames'
       players find it and claim a seat, and everyone sees the same seat count.
     </p>
 
-    <p>
-      Nothing is registerable yet. This is the first skeleton, and the events
-      API is not live, so the list comes up empty.
-    </p>
-
     <RouterLink class="home__cta" :to="{ name: RouteNames.events }">
       Browse events
     </RouterLink>

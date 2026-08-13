@@ -1,25 +1,30 @@
 <script setup lang="ts">
-// Events landing page: lists every scheduled event with its request states.
 import EventCard from '../components/EventCard.vue'
 import { useEvents } from '../composables/useEvents'
 
-const { events, isLoading, error, refresh } = useEvents()
+const { events, isLoading, error, load } = useEvents()
 
-refresh()
+load()
 </script>
 
 <template>
-  <section>
+  <section class="events">
     <h1 class="events__title">Events</h1>
 
     <p v-if="isLoading">Loading events…</p>
 
-    <p v-else-if="error">We could not load events just now. Please try again.</p>
+    <template v-else-if="error">
+      <p>We could not load events just now. Please try again.</p>
+
+      <button class="events__retry" type="button" @click="load">
+        Try again
+      </button>
+    </template>
 
     <p v-else-if="events.length === 0">No events are scheduled yet.</p>
 
     <ul v-else class="events__list">
-      <li v-for="event in events" :key="event.id">
+      <li v-for="event in events" :key="event.eventId">
         <EventCard :event="event" />
       </li>
     </ul>
@@ -29,6 +34,21 @@ refresh()
 <style scoped>
 .events__title {
   margin-top: 0;
+}
+
+.events__retry {
+  margin-top: 16px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-accent-border);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  cursor: pointer;
+}
+
+.events__retry:hover {
+  box-shadow: var(--shadow-sm);
 }
 
 .events__list {
