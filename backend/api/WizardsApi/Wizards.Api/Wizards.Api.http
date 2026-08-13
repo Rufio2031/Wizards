@@ -1,7 +1,140 @@
-@Wizards.Api_HostAddress = http://localhost:5208
+@hostname = localhost
+@port = 5208
+@baseUrl = http://{{hostname}}:{{port}}
+
+# A version 7 GUID, matching the identifiers the API assigns to new events.
+# Replace with an EventId returned by "Create an event" before running the
+# by-identifier requests.
+@eventId = 019ffa29-3bd1-735b-8852-ffcdc6a95c9a
 
 ### OpenAPI document (development only)
-GET {{Wizards.Api_HostAddress}}/openapi/v1.json
+GET {{baseUrl}}/openapi/v1.json
 Accept: application/json
+
+### Get the first page of events (defaults to skip=0, take=50)
+# Responds with { "events": [ ... ], "totalCount": 3, "skip": 0, "take": 50 }, where totalCount
+# counts every stored event rather than the events on this page.
+GET {{baseUrl}}/events
+Accept: application/json
+
+### Get the second page of ten events
+# The echoed skip and take repeat what was asked for: { "events": [ ... ], "totalCount": 3,
+# "skip": 10, "take": 10 }
+GET {{baseUrl}}/events?skip=10&take=10
+Accept: application/json
+
+### Get a page starting past the end (expects 200 with an empty events array, totalCount still set)
+GET {{baseUrl}}/events?skip=100000
+Accept: application/json
+
+### Get a page with a negative skip (expects 400 with ValidationProblemDetails)
+GET {{baseUrl}}/events?skip=-1
+Accept: application/json
+
+### Get a page larger than the cap (expects 400 with ValidationProblemDetails)
+GET {{baseUrl}}/events?take=201
+Accept: application/json
+
+### Get a single event by its identifier
+GET {{baseUrl}}/events/{{eventId}}
+Accept: application/json
+
+### Get an event that does not exist (expects 404 with ProblemDetails)
+GET {{baseUrl}}/events/00000000-0000-0000-0000-000000000001
+Accept: application/json
+
+### Create an event
+POST {{baseUrl}}/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Friday Night Magic",
+  "description": "Weekly in-store Standard tournament. Doors open thirty minutes before the first round.",
+  "startDateTime": "2026-09-18T18:00:00-04:00",
+  "endDateTime": "2026-09-18T22:30:00-04:00",
+  "gameType": { "name": "Magic: The Gathering" }
+}
+
+### Create an event with no scheduled end
+POST {{baseUrl}}/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Open Play Saturday",
+  "description": null,
+  "startDateTime": "2026-09-19T12:00:00-04:00",
+  "endDateTime": null,
+  "gameType": { "name": "Pokémon" }
+}
+
+### Create an event naming a game type in a different case (expects 201, matched case-insensitively)
+POST {{baseUrl}}/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Sunday Commander",
+  "description": null,
+  "startDateTime": "2026-09-20T13:00:00-04:00",
+  "endDateTime": null,
+  "gameType": { "name": "magic: the gathering" }
+}
+
+### Create an event with an empty name (expects 400 with ValidationProblemDetails)
+POST {{baseUrl}}/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "",
+  "description": "Name is required and must be at least one character.",
+  "startDateTime": "2026-09-18T18:00:00-04:00",
+  "endDateTime": "2026-09-18T22:30:00-04:00",
+  "gameType": { "name": "Magic: The Gathering" }
+}
+
+### Create an event with an unknown game type (expects 400 with ValidationProblemDetails)
+POST {{baseUrl}}/events
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Wednesday Warhammer",
+  "description": null,
+  "startDateTime": "2026-09-23T18:00:00-04:00",
+  "endDateTime": null,
+  "gameType": { "name": "Warhammer 40,000" }
+}
+
+### Replace an existing event
+PUT {{baseUrl}}/events/{{eventId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Friday Night Magic - Modern",
+  "description": "Format changed to Modern. Weekly in-store tournament.",
+  "startDateTime": "2026-09-18T19:00:00-04:00",
+  "endDateTime": "2026-09-18T23:00:00-04:00",
+  "gameType": { "name": "Magic: The Gathering" }
+}
+
+### Replace an event that does not exist (expects 404 with ProblemDetails)
+PUT {{baseUrl}}/events/00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Nothing To Replace",
+  "description": null,
+  "startDateTime": "2026-09-18T19:00:00-04:00",
+  "endDateTime": null,
+  "gameType": { "name": "Magic: The Gathering" }
+}
+
+### Delete an event
+DELETE {{baseUrl}}/events/{{eventId}}
 
 ###

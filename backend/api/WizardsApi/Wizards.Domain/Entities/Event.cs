@@ -111,6 +111,63 @@ public class Event
     }
 
     /// <summary>
+    /// Replaces every caller-supplied detail of the event in full, so a <see langword="null"/> optional
+    /// value clears the value it replaces rather than leaving it untouched.
+    /// </summary>
+    /// <remarks>
+    /// The start date and time must not already have passed, exactly as it must not for
+    /// <see cref="Create"/>. Because every detail is replaced in full, an event whose start has already
+    /// passed cannot be updated at all without moving its start into the future.
+    /// </remarks>
+    /// <param name="name">
+    /// The replacement display name. Surrounding whitespace is trimmed before the length is checked.
+    /// </param>
+    /// <param name="description">
+    /// The replacement description, trimmed when supplied, or <see langword="null"/> to clear it.
+    /// </param>
+    /// <param name="gameType">The replacement game the event is played with.</param>
+    /// <param name="startDateTime">
+    /// The replacement instant the event begins, which must be UTC and must not already have passed.
+    /// </param>
+    /// <param name="endDateTime">
+    /// The replacement instant the event ends, which must be UTC and fall strictly after
+    /// <paramref name="startDateTime"/>, or <see langword="null"/> to clear the scheduled end.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="gameType"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when either instant is not <see cref="DateTimeKind.Utc"/>.
+    /// </exception>
+    /// <exception cref="DomainException">
+    /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
+    /// when <paramref name="description"/> is too long, when <paramref name="startDateTime"/> is in the
+    /// past, or when <paramref name="endDateTime"/> does not fall after
+    /// <paramref name="startDateTime"/>. The message states the rule that was broken and is safe to
+    /// report to the originator of the request.
+    /// </exception>
+    public void Update(
+        string name,
+        string? description,
+        GameType gameType,
+        DateTime startDateTime,
+        DateTime? endDateTime)
+    {
+        ArgumentNullException.ThrowIfNull(gameType);
+
+        name = ValidateAndNormalizeName(name);
+        description = ValidateAndNormalizeDescription(description);
+
+        ValidateSchedule(startDateTime, endDateTime);
+
+        this.Name = name;
+        this.Description = description;
+        this.GameType = gameType;
+        this.StartDateTime = startDateTime;
+        this.EndDateTime = endDateTime;
+    }
+
+    /// <summary>
     /// Rebuilds an event from already-persisted state, applying no validation.
     /// </summary>
     /// <remarks>

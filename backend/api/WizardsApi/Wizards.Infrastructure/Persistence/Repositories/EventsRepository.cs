@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
 using Wizards.Domain.Interfaces.Repositories;
+using Wizards.Domain.Models;
 using Wizards.Infrastructure.Extensions;
 
 namespace Wizards.Infrastructure.Persistence.Repositories;
@@ -32,12 +33,60 @@ internal sealed class EventsRepository(AppDbContext dbContext) : IEventsReposito
     }
 
     /// <inheritdoc />
+    public async Task<EventPage> GetEventsAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+
+        IQueryable<Records.Event> query = dbContext.Events
+            .AsNoTracking();
+
+        int totalCount = await query.CountAsync(cancellationToken);
+
+        List<Records.Event> eventRecords = await query
+            .Include(storedEvent => storedEvent.GameType)
+            .OrderBy(storedEvent => storedEvent.StartDateTime)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return new EventPage(
+            eventRecords.Select(eventRecord => eventRecord.ToEntity()).ToList(),
+            totalCount);
+    }
+
+    /// <inheritdoc />
     public Task AddEventAsync(Domain.Entities.Event eventEntity, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(eventEntity);
         cancellationToken.ThrowIfCancellationRequested();
 
         dbContext.Events.Add(eventEntity.ToRecord());
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task UpdateEventAsync(Domain.Entities.Event eventEntity, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(eventEntity);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        dbContext.Events.Update(eventEntity.ToRecord());
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task DeleteEventAsync(Domain.Entities.Event eventEntity, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(eventEntity);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        dbContext.Events.Remove(eventEntity.ToRecord());
 
         return Task.CompletedTask;
     }

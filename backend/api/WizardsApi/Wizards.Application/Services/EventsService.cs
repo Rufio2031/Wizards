@@ -5,6 +5,7 @@ using Wizards.Application.Models;
 using Wizards.Domain.Entities;
 using Wizards.Domain.Exceptions;
 using Wizards.Domain.Interfaces.Repositories;
+using Wizards.Domain.Models;
 
 namespace Wizards.Application.Services;
 
@@ -27,6 +28,23 @@ internal sealed class EventsService(
     IGameTypesRepository gameTypesRepository,
     IUnitOfWork unitOfWork) : IEventsService
 {
+    /// <inheritdoc />
+    public async Task<Page<EventResponse>> GetEvents(
+        GetEventsRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        EventPage page = await eventsRepository.GetEventsAsync(
+            request.Skip,
+            request.Take,
+            cancellationToken);
+
+        return new Page<EventResponse>(
+            page.Events.Select(@event => new EventResponse(@event)).ToList(),
+            new PaginationMeta(request.Skip, request.Take, page.TotalCount));
+    }
+
     /// <inheritdoc />
     public async Task<EventResponse?> GetEvent(Guid eventId, CancellationToken cancellationToken)
     {
@@ -74,5 +92,81 @@ internal sealed class EventsService(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return EventWriteResult.Success(new EventResponse(@event));
+    }
+
+    /// <inheritdoc />
+    public async Task<EventWriteResult> UpdateEvent(
+        Guid eventId,
+        UpdateEventRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (eventId == Guid.Empty)
+        {
+            throw new ArgumentException("Event identifier cannot be empty.", nameof(eventId));
+        }
+
+        ArgumentNullException.ThrowIfNull(request);
+
+        Event? @event = await eventsRepository.GetEventByPublicIdAsync(eventId, cancellationToken);
+
+        if (@event is null)
+        {
+            return EventWriteResult.Failure(EventErrors.EventNotFound);
+        }
+
+        // Verify Event owner is the same as the one making the request.
+        // Consider returning NotFound to avoid leaking information about the existence of the event.
+
+        GameType? gameType = await gameTypesRepository.GetGameTypeByNameAsync(
+            request.GameType.Name,
+            cancellationToken);
+
+        if (gameType is null)
+        {
+            return EventWriteResult.Failure(EventErrors.GameTypeNotFound);
+        }
+
+        try
+        {
+            @event.Update(
+                request.Name,
+                request.Description,
+                gameType,
+                request.StartDateTime,
+                request.EndDateTime);
+        }
+        catch (DomainException exception)
+        {
+            return EventWriteResult.Failure(EventErrors.Invalid(exception.Message));
+        }
+
+        await eventsRepository.UpdateEventAsync(@event, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return EventWriteResult.Success(new EventResponse(@event));
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> DeleteEvent(Guid eventId, CancellationToken cancellationToken)
+    {
+        if (eventId == Guid.Empty)
+        {
+            throw new ArgumentException("Event identifier cannot be empty.", nameof(eventId));
+        }
+
+        Event? @event = await eventsRepository.GetEventByPublicIdAsync(eventId, cancellationToken);
+
+        if (@event is null)
+        {
+            return false;
+        }
+
+        // Verify Event owner is the same as the one making the request.
+        // Consider returning NotFound to avoid leaking information about the existence of the event.
+
+        await eventsRepository.DeleteEventAsync(@event, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 }
