@@ -1,0 +1,74 @@
+/*
+ * The declaration site for every color, elevation, and font family in the app.
+ * docs/shared/design-tokens.md says what each token is for; edit the two together.
+ *
+ * Light is the base. The dark block overrides only what differs, so a token with no
+ * dark counterpart is theme-invariant by construction rather than by omission.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --color-bg: #fff;
+  --color-surface: #f4f3ec;
+  --color-surface-subtle: rgba(244, 243, 236, 0.5);
+
+  /* Text */
+  --color-text: #6b6375;
+  --color-text-strong: #08060d;
+
+  /* Borders */
+  --color-border: #e5e4e7;
+
+  /* Accent */
+  --color-accent: #aa3bff;
+  --color-accent-soft: rgba(170, 59, 255, 0.1);
+  --color-accent-border: rgba(170, 59, 255, 0.5);
+
+  /* Status: muted. An achromatic pair, so it reads as "no longer available" rather
+     than as an error. Both values are picked to composite visibly on
+     --color-surface, which --color-surface-subtle does not. */
+  --color-status-muted: #57606a;
+  --color-status-muted-soft: rgba(87, 96, 106, 0.12);
+
+  /* Focus. Separate from --color-accent so the ring can be darkened for contrast
+     without dragging every accent surface along with it. */
+  --color-focus-ring: #aa3bff;
+
+  /* Elevation. The geometry is the step; the theme changes only the alpha. */
+  --shadow-sm:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  /* Typography */
+  --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #16171d;
+    --color-surface: #1f2028;
+    --color-surface-subtle: rgba(47, 48, 58, 0.5);
+
+    --color-text: #9ca3af;
+    --color-text-strong: #f3f4f6;
+
+    --color-border: #2e303a;
+
+    --color-accent: #c084fc;
+    --color-accent-soft: rgba(192, 132, 252, 0.15);
+    --color-accent-border: rgba(192, 132, 252, 0.5);
+
+    --color-status-muted: #a1a8b3;
+    --color-status-muted-soft: rgba(161, 168, 179, 0.15);
+
+    --color-focus-ring: #c084fc;
+
+    /* Same geometry as light, heavier alpha: a shadow is a fixed black composited
+       against a variable background, so one alpha cannot be right in both themes. */
+    --shadow-sm:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+}

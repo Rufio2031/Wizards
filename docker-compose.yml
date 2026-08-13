@@ -15,3 +15,17 @@ services:
     ports:
       - "5208:8080"
     restart: unless-stopped
+
+  web-wizards:
+    build:
+      context: ./frontend/web
+      dockerfile: Dockerfile
+    image: wizards/web:latest
+    # nginx serves the built bundle on 5173, the same port the dev server uses, so
+    # one mapping works in both layers. Compose concatenates `ports` across the base
+    # and override files, so a differing container port would publish twice on 5209.
+    ports:
+      - "5209:5173"
+    depends_on:
+      - api-wizards
+    restart: unless-stopped
