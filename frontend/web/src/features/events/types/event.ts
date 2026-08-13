@@ -1,8 +1,9 @@
 /**
- * Shape of a single tabletop card game event.
+ * Shape of a single tabletop card game event as the API returns it.
  *
- * Mirrors what the events API is expected to return, so swapping the hardcoded
- * list for a real fetch should not change any component that consumes it.
+ * The API has no events controller yet, so no response DTO exists to mirror.
+ * This is the provisional contract and must be reconciled with the real DTO
+ * once it lands, the backend being the source of truth.
  */
 export interface GameEvent {
   /** Stable identifier, used as the list key. */
@@ -11,7 +12,7 @@ export interface GameEvent {
   /** Display name of the event. */
   name: string
 
-  /** Start date as an ISO `YYYY-MM-DD` string. */
+  /** Start of the event as an ISO 8601 date or date-time string. */
   date: string
 
   /** Venue or store hosting the event. */
@@ -22,7 +23,7 @@ export interface GameEvent {
 
   /**
    * Seats already claimed. Expected to stay within `capacity`, but consumers
-   * should not assume it: this will come from an API.
+   * should not assume it: this comes from an API.
    */
   registered: number
 }

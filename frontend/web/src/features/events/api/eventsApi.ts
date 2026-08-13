@@ -2,7 +2,7 @@
  * Hardcoded event list standing in for the events API, which does not exist yet.
  * Shaped like the response that endpoint is expected to return.
  */
-import type { GameEvent } from './events.types'
+import type { GameEvent } from '../types/event'
 
 export const events: GameEvent[] = [
   {

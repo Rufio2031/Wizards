@@ -4,29 +4,54 @@
  */
 import { createRouter, createWebHistory } from 'vue-router'
 
-import HomeView from '../views/HomeView.vue'
-import EventsView from '../views/EventsView.vue'
+import { APP_NAME } from '@/config/app'
+import { eventsRoutes } from '@/features/events/routes'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import HomeView from '@/views/HomeView.vue'
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    /** Document title for the route, so tabs and history entries are distinct. */
-    title: string
-  }
-}
+import { RouteNames } from './routeNames'
 
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', name: 'home', component: HomeView, meta: { title: 'Wizards' } },
     {
-      path: '/events',
-      name: 'events',
-      component: EventsView,
-      meta: { title: 'Events · Wizards' },
+      path: '/',
+      component: DefaultLayout,
+      children: [
+        {
+          path: '',
+          name: RouteNames.home,
+          component: HomeView,
+          meta: { title: 'Home' },
+        },
+        ...eventsRoutes,
+        {
+          path: ':pathMatch(.*)*',
+          component: () => import('@/views/NotFoundView.vue'),
+          meta: { title: 'Page not found' },
+        },
+      ],
     },
   ],
+  scrollBehavior(to, _from, savedPosition) {
+    if (to.hash) {
+      return { el: to.hash }
+    }
+
+    return savedPosition ?? { top: 0 }
+  },
 })
 
-router.afterEach((to) => {
-  document.title = to.meta.title
+router.afterEach((to, from) => {
+  document.title = to.meta.title ? `${to.meta.title} · ${APP_NAME}` : APP_NAME
+
+  // A client-side navigation leaves focus where it was, so assistive tech never
+  // hears that the page changed. The first render is the browser's to own.
+  if (from.matched.length === 0) {
+    return
+  }
+
+  requestAnimationFrame(() => {
+    document.getElementById('main')?.focus({ preventScroll: true })
+  })
 })

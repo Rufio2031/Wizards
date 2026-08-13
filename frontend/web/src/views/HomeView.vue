@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Home page: introduces Wizards and points visitors at the events list.
+import { RouteNames } from '@/router/routeNames'
 </script>
 
 <template>
@@ -12,11 +12,13 @@
     </p>
 
     <p>
-      Nothing is registerable yet. This is the first skeleton, so the event list
-      is sample data.
+      Nothing is registerable yet. This is the first skeleton, and the events
+      API is not live, so the list comes up empty.
     </p>
 
-    <RouterLink class="home__cta" to="/events">Browse events</RouterLink>
+    <RouterLink class="home__cta" :to="{ name: RouteNames.events }">
+      Browse events
+    </RouterLink>
   </section>
 </template>
 

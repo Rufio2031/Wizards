@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Events page: lists every known event. Data is local until the API exists.
 import EventCard from '../components/EventCard.vue'
-import { events } from '../data/events'
+import { events } from '../api/eventsApi'
 </script>
 
 <template>
