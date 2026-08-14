@@ -10,13 +10,6 @@ using Wizards.Application.Models;
 
 namespace Wizards.Api.Controllers;
 
-/// <summary>
-/// Serves the events resource.
-/// </summary>
-/// <param name="eventsService">
-/// The service backing every action on this controller. Supplied by dependency injection; never
-/// <see langword="null"/>.
-/// </param>
 [ApiController]
 [Route("events")]
 [Produces("application/json")]

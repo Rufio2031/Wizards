@@ -16,6 +16,10 @@
   --color-accent-soft: rgba(192, 132, 252, 0.15);
   --color-accent-border: rgba(192, 132, 252, 0.5);
 
+  --color-danger: #f87171;
+  --color-danger-soft: rgba(248, 113, 113, 0.15);
+  --color-danger-border: rgba(248, 113, 113, 0.5);
+
   --color-status-muted: #a1a8b3;
   --color-status-muted-soft: rgba(161, 168, 179, 0.15);
 

@@ -10,6 +10,8 @@ import { RouteNames } from '@/router/routeNames'
 import { isApiError } from '@/services/http/ApiError'
 import { formatSchedule } from '@/utils/dateTime'
 
+import EventQrCode from '../components/EventQrCode.vue'
+import EventRegistrationList from '../components/EventRegistrationList.vue'
 import { useEvent } from '../composables/useEvent'
 
 const props = defineProps<{
@@ -62,6 +64,8 @@ const hasSelections = computed(
         {{ formatSchedule(event.startDateTime, event.endDateTime) }}
       </p>
 
+      <p class="event-detail__meta">Up to {{ event.registrationLimit }} players</p>
+
       <p v-if="event.description" class="event-detail__description">
         {{ event.description }}
       </p>
@@ -75,6 +79,16 @@ const hasSelections = computed(
 
         <GameTypeSelectionList :settings="gameTypeSettings" :selections="event.selections" />
       </template>
+
+      <h2 class="event-detail__registration-heading">Registration</h2>
+
+      <EventQrCode class="event-detail__qr-code" :event-id="event.eventId" />
+
+      <EventRegistrationList
+        class="event-detail__registrations"
+        :event-id="event.eventId"
+        :registration-limit="event.registrationLimit"
+      />
     </template>
   </section>
 </template>
@@ -120,5 +134,17 @@ const hasSelections = computed(
 .event-detail__settings-title {
   margin: 24px 0 12px;
   font-size: 1.125rem;
+}
+
+.event-detail__registration-heading {
+  margin: 40px 0 0;
+}
+
+.event-detail__qr-code {
+  margin-top: 16px;
+}
+
+.event-detail__registrations {
+  margin-top: 32px;
 }
 </style>

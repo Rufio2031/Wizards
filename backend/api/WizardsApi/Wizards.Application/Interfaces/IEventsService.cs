@@ -4,9 +4,6 @@ using Wizards.Application.Models;
 
 namespace Wizards.Application.Interfaces;
 
-/// <summary>
-/// Reads and maintains the collection of events.
-/// </summary>
 public interface IEventsService
 {
     /// <summary>

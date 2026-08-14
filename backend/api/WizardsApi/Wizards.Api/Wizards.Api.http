@@ -7,8 +7,16 @@
 # by-identifier requests.
 @eventId = 019ffa29-3bd1-735b-8852-ffcdc6a95c9a
 
+# Replace with a GameTypeId returned by "Get the registered game types" before
+# running the create requests.
+@gameTypeId = 019ffa29-3bd1-735b-8852-ffcdc6a95c9b
+
 ### OpenAPI document (development only)
 GET {{baseUrl}}/openapi/v1.json
+Accept: application/json
+
+### Get the registered game types, with the settings each one exposes
+GET {{baseUrl}}/gametypes
 Accept: application/json
 
 ### Get the first page of events (defaults to skip=0, take=50)
@@ -43,7 +51,7 @@ Accept: application/json
 GET {{baseUrl}}/events/00000000-0000-0000-0000-000000000001
 Accept: application/json
 
-### Create an event
+### Create an event that accepts sixteen players
 POST {{baseUrl}}/events
 Content-Type: application/json
 Accept: application/json
@@ -53,10 +61,11 @@ Accept: application/json
   "description": "Weekly in-store Standard tournament. Doors open thirty minutes before the first round.",
   "startDateTime": "2026-09-18T18:00:00-04:00",
   "endDateTime": "2026-09-18T22:30:00-04:00",
-  "gameType": { "name": "Magic: The Gathering" }
+  "registrationLimit": 16,
+  "gameType": { "gameTypeId": "{{gameTypeId}}" }
 }
 
-### Create an event with no scheduled end
+### Create an event with no stated limit (accepts the maximum of thirty)
 POST {{baseUrl}}/events
 Content-Type: application/json
 Accept: application/json
@@ -65,11 +74,11 @@ Accept: application/json
   "name": "Open Play Saturday",
   "description": null,
   "startDateTime": "2026-09-19T12:00:00-04:00",
-  "endDateTime": null,
-  "gameType": { "name": "Pokémon" }
+  "endDateTime": "2026-09-19T17:00:00-04:00",
+  "gameType": { "gameTypeId": "{{gameTypeId}}" }
 }
 
-### Create an event naming a game type in a different case (expects 201, matched case-insensitively)
+### Create an event above the largest limit (expects 400 keyed by RegistrationLimit)
 POST {{baseUrl}}/events
 Content-Type: application/json
 Accept: application/json
@@ -78,8 +87,9 @@ Accept: application/json
   "name": "Sunday Commander",
   "description": null,
   "startDateTime": "2026-09-20T13:00:00-04:00",
-  "endDateTime": null,
-  "gameType": { "name": "magic: the gathering" }
+  "endDateTime": "2026-09-20T17:00:00-04:00",
+  "registrationLimit": 31,
+  "gameType": { "gameTypeId": "{{gameTypeId}}" }
 }
 
 ### Create an event with an empty name (expects 400 with ValidationProblemDetails)
@@ -92,10 +102,10 @@ Accept: application/json
   "description": "Name is required and must be at least one character.",
   "startDateTime": "2026-09-18T18:00:00-04:00",
   "endDateTime": "2026-09-18T22:30:00-04:00",
-  "gameType": { "name": "Magic: The Gathering" }
+  "gameType": { "gameTypeId": "{{gameTypeId}}" }
 }
 
-### Create an event with an unknown game type (expects 400 with ValidationProblemDetails)
+### Create an event with an unregistered game type (expects 400 with ValidationProblemDetails)
 POST {{baseUrl}}/events
 Content-Type: application/json
 Accept: application/json
@@ -104,8 +114,39 @@ Accept: application/json
   "name": "Wednesday Warhammer",
   "description": null,
   "startDateTime": "2026-09-23T18:00:00-04:00",
-  "endDateTime": null,
-  "gameType": { "name": "Warhammer 40,000" }
+  "endDateTime": "2026-09-23T22:00:00-04:00",
+  "gameType": { "gameTypeId": "00000000-0000-0000-0000-000000000001" }
 }
+
+### Register a player for an event (expects 200 with no body)
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace"
+}
+
+### Register with an empty name (expects 400 with ValidationProblemDetails keyed by Name)
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": ""
+}
+
+### Register for an event that does not exist (expects 404 with ProblemDetails)
+POST {{baseUrl}}/events/00000000-0000-0000-0000-000000000001/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace"
+}
+
+### Register for a full event
+# Send the first request as many times as the event's registrationLimit, and the
+# next one responds 409 with { "errors": { "": [ "This event is full." ] } }.
 
 ###

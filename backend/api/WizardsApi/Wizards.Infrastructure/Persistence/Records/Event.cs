@@ -1,8 +1,5 @@
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents an in-store game event.
-/// </summary>
 internal sealed class Event
 {
     /// <summary>Gets or sets the primary key of the event.</summary>

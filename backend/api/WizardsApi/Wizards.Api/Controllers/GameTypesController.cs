@@ -5,13 +5,6 @@ using Wizards.Application.Interfaces;
 
 namespace Wizards.Api.Controllers;
 
-/// <summary>
-/// Serves the game types resource.
-/// </summary>
-/// <param name="gameTypesService">
-/// The service backing every action on this controller. Supplied by dependency injection; never
-/// <see langword="null"/>.
-/// </param>
 [ApiController]
 [Route("gametypes")]
 [Produces("application/json")]

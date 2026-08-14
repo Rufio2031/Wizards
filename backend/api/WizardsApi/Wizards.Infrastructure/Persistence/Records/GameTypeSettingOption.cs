@@ -1,8 +1,5 @@
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents one of the fixed values a choice setting allows.
-/// </summary>
 internal sealed class GameTypeSettingOption
 {
     /// <summary>Gets or sets the primary key of the option.</summary>

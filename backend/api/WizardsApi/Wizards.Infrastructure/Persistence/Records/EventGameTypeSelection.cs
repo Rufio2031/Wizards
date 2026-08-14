@@ -1,8 +1,5 @@
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents one setting an organizer settled for an event.
-/// </summary>
 internal sealed class EventGameTypeSelection
 {
     /// <summary>Gets or sets the primary key of the selection.</summary>

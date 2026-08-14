@@ -2,9 +2,6 @@ using Wizards.Application.DTOs.Responses;
 
 namespace Wizards.Application.Interfaces;
 
-/// <summary>
-/// Reads the registered game types and the settings they expose.
-/// </summary>
 public interface IGameTypesService
 {
     /// <summary>

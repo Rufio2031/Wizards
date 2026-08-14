@@ -1,19 +1,35 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+
+using Wizards.Domain.Exceptions;
 using Wizards.Domain.Interfaces.Repositories;
 
 namespace Wizards.Infrastructure.Persistence;
 
-/// <summary>
-/// Commits the changes tracked by the scope's <see cref="AppDbContext"/>.
-/// </summary>
-/// <param name="dbContext">
-/// The context whose tracked changes are committed. Must be the same scoped instance the
-/// repositories stage their work against, or their changes will not be seen.
-/// </param>
 internal sealed class UnitOfWork(AppDbContext dbContext) : IUnitOfWork
 {
+    /// <summary>
+    /// The extended result SQLite reports when a trigger aborts a statement, which is how the schema
+    /// enforces the rules that span rows and cannot be stated as a column constraint.
+    /// </summary>
+    private const int SqliteConstraintTrigger = 1811;
+
     /// <inheritdoc />
-    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        return dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is SqliteException
+                  {
+                      SqliteExtendedErrorCode: SqliteConstraintTrigger
+                  })
+        {
+            throw new StoreRuleViolationException(
+                "The database refused the commit because a rule it enforces was broken.",
+                exception);
+        }
     }
 }

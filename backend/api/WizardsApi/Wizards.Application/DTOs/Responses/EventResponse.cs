@@ -16,6 +16,7 @@ namespace Wizards.Application.DTOs.Responses;
 /// <param name="EndDateTime">
 /// The instant the event ends, always in UTC and always serialized with a trailing <c>Z</c>.
 /// </param>
+/// <param name="RegistrationLimit">How many players the event accepts.</param>
 /// <param name="GameType">The type of game the event is for.</param>
 /// <param name="Selections">
 /// The settings the organizer settled for the event, keyed by the setting's key. Carries one entry
@@ -28,6 +29,7 @@ public record EventResponse(
     string? Description,
     DateTime StartDateTime,
     DateTime EndDateTime,
+    int RegistrationLimit,
     GameTypeResponse GameType,
     IReadOnlyDictionary<string, string> Selections)
 {
@@ -45,6 +47,7 @@ public record EventResponse(
             @event.Description,
             @event.StartDateTime,
             @event.EndDateTime,
+            @event.RegistrationLimit,
             new GameTypeResponse(@event.GameType),
             @event.Selections.ToDictionary(selection => selection.Key, selection => selection.Value))
     {

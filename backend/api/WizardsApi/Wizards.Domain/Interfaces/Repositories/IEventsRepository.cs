@@ -4,14 +4,6 @@ using Wizards.Domain.Models;
 
 namespace Wizards.Domain.Interfaces.Repositories;
 
-/// <summary>
-/// Reads events and stages changes to them.
-/// </summary>
-/// <remarks>
-/// Writes are staged only and are not durable until <see cref="IUnitOfWork.SaveChangesAsync"/> is
-/// called on the same scope. Implementations are scoped and are not safe to share across threads or
-/// concurrent requests.
-/// </remarks>
 public interface IEventsRepository
 {
     /// <summary>

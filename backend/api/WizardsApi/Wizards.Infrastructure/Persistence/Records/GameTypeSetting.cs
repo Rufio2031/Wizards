@@ -2,9 +2,6 @@ using Wizards.Domain.Enums;
 
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents one setting a game type exposes.
-/// </summary>
 internal sealed class GameTypeSetting
 {
     /// <summary>Gets or sets the primary key of the setting.</summary>

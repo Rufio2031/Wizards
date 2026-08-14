@@ -79,6 +79,47 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             ])
     ];
 
+    /// <summary>
+    /// The events written when sample data is asked for, described relative to the moment the seed
+    /// runs so that a seed on any day produces events that have not already happened.
+    /// </summary>
+    /// <remarks>
+    /// Between them these cover the three states the registration screens have to render: an event
+    /// with room, one that is full, and one nobody has registered for.
+    /// </remarks>
+    private static readonly IReadOnlyList<SampleEvent> SampleEvents =
+    [
+        new SampleEvent(
+            "Friday Night Magic",
+            "Weekly in-store tournament. Doors open thirty minutes before the first round.",
+            "Magic: The Gathering",
+            TimeSpan.FromDays(2),
+            TimeSpan.FromHours(4),
+            16,
+            new Dictionary<string, string> { ["format"] = "Modern" },
+            ["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Edsger Dijkstra"]),
+
+        new SampleEvent(
+            "Commander Pod Night",
+            "One pod, four seats, no substitutions.",
+            "Magic: The Gathering",
+            TimeSpan.FromDays(5),
+            TimeSpan.FromHours(3),
+            4,
+            new Dictionary<string, string> { ["format"] = "Commander", ["deckSize"] = "100" },
+            ["Barbara Liskov", "Donald Knuth", "Margaret Hamilton", "Ken Thompson"]),
+
+        new SampleEvent(
+            "Catan Saturday",
+            null,
+            "Catan",
+            TimeSpan.FromDays(6),
+            TimeSpan.FromHours(4),
+            6,
+            null,
+            [])
+    ];
+
     private static readonly StringComparer GameTypeNameComparer = StringComparer.OrdinalIgnoreCase;
 
     /// <summary>
@@ -95,9 +136,14 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// Thrown when a configured seed value violates the invariants of the entity it creates. This is a
     /// defect in the seed data itself and is deliberately allowed to fail the host.
     /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when a sample event names a game type that is not seeded, which is the same kind of
+    /// defect in the seed data.
+    /// </exception>
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
         await this.SeedGameTypesAsync(cancellationToken);
+        await this.SeedSampleEventsAsync(cancellationToken);
     }
 
     private async Task SeedGameTypesAsync(CancellationToken cancellationToken)
@@ -173,4 +219,127 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             insertedSettings);
     }
 
+    /// <summary>
+    /// Writes the sample events, and the registrations held against them, into a database that holds
+    /// no events at all.
+    /// </summary>
+    /// <remarks>
+    /// An event has no natural key, and two events may legitimately share a name, so there is nothing
+    /// to compare a sample against to decide whether it is already stored. Seeding only into an empty
+    /// table is what makes this safe to run on every start: a database with any event in it, including
+    /// one left after the samples were deleted on purpose, is left exactly as it is.
+    /// </remarks>
+    private async Task SeedSampleEventsAsync(CancellationToken cancellationToken)
+    {
+        if (SampleEvents.Count == 0 || await dbContext.Events.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        Dictionary<string, GameType> gameTypesByName = await this.ReadGameTypesByNameAsync(cancellationToken);
+
+        // Every sample is dated from one reading, so events seeded together stay in the order they are
+        // listed rather than drifting apart by however long the seed takes.
+        DateTime seededAt = DateTime.UtcNow;
+
+        List<(Records.Event Record, IReadOnlyList<EventRegistration> Registrations)> pendingEvents = [];
+
+        foreach (SampleEvent sampleEvent in SampleEvents)
+        {
+            if (!gameTypesByName.TryGetValue(sampleEvent.GameTypeName, out GameType? gameType))
+            {
+                throw new InvalidOperationException(
+                    $"Sample event '{sampleEvent.Name}' names the game type '{sampleEvent.GameTypeName}', which is not seeded.");
+            }
+
+            Event @event = Event.Create(
+                sampleEvent.Name,
+                sampleEvent.Description,
+                gameType,
+                seededAt + sampleEvent.StartsIn,
+                seededAt + sampleEvent.StartsIn + sampleEvent.Runs,
+                sampleEvent.RegistrationLimit,
+                gameType.Validate(sampleEvent.Selections?.Select(
+                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value))));
+
+            Records.Event eventRecord = @event.ToRecord();
+
+            dbContext.Events.Add(eventRecord);
+
+            pendingEvents.Add((
+                eventRecord,
+                sampleEvent.RegisteredPlayers
+                    .Select(player => EventRegistration.Create(@event, player))
+                    .ToList()));
+        }
+
+        // The events are saved on their own so that the database assigns the keys the registrations
+        // point at. The entities the registrations were created from carry no key, since an entity is
+        // never handed the one its record was given.
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        int insertedRegistrations = 0;
+
+        foreach ((Records.Event eventRecord, IReadOnlyList<EventRegistration> registrations) in pendingEvents)
+        {
+            foreach (EventRegistration registration in registrations)
+            {
+                dbContext.EventRegistrations.Add(new Records.EventRegistration
+                {
+                    EventId = eventRecord.Id,
+                    Name = registration.Name
+                });
+
+                insertedRegistrations++;
+            }
+        }
+
+        if (insertedRegistrations > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        logger.LogInformation(
+            "Seeded {InsertedEventCount} sample events and {InsertedRegistrationCount} registrations held against them.",
+            pendingEvents.Count,
+            insertedRegistrations);
+    }
+
+    private async Task<Dictionary<string, GameType>> ReadGameTypesByNameAsync(CancellationToken cancellationToken)
+    {
+        List<Records.GameType> storedGameTypes = await dbContext.GameTypes
+            .AsNoTracking()
+            .Include(gameType => gameType.Settings)
+                .ThenInclude(setting => setting.Options)
+            .ToListAsync(cancellationToken);
+
+        Dictionary<string, GameType> gameTypesByName = new(GameTypeNameComparer);
+
+        foreach (Records.GameType storedGameType in storedGameTypes)
+        {
+            gameTypesByName.TryAdd(storedGameType.Name, storedGameType.ToEntity());
+        }
+
+        return gameTypesByName;
+    }
+
+    /// <param name="StartsIn">How long after the seed runs the event begins.</param>
+    /// <param name="Runs">How long the event lasts once it has begun.</param>
+    /// <param name="Selections">
+    /// The settings to settle for the event, or <see langword="null"/> to leave every setting the game
+    /// type exposes at its default.
+    /// </param>
+    /// <param name="RegisteredPlayers">
+    /// The names to register, in order. Must not outnumber <paramref name="RegistrationLimit"/>, which
+    /// the database enforces on the way in regardless.
+    /// </param>
+    private sealed record SampleEvent(
+        string Name,
+        string? Description,
+        string GameTypeName,
+        TimeSpan StartsIn,
+        TimeSpan Runs,
+        int RegistrationLimit,
+        IReadOnlyDictionary<string, string>? Selections,
+        IReadOnlyList<string> RegisteredPlayers);
 }

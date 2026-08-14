@@ -4,12 +4,14 @@ import { useRouter } from 'vue-router'
 
 import AppAction from '@/components/AppAction.vue'
 import AppField from '@/components/AppField.vue'
+import { useFormFailure } from '@/composables/useFormFailure'
 import GameTypeSettingField from '@/features/gameTypes/components/GameTypeSettingField.vue'
 import { useGameTypes } from '@/features/gameTypes/composables/useGameTypes'
 import type { GameTypeTemplate } from '@/features/gameTypes/types/gameType'
 import { RouteNames } from '@/router/routeNames'
 
 import { useCreateEvent } from '../composables/useCreateEvent'
+import { REGISTRATION_LIMIT } from '../types/event'
 
 const UNEXPECTED_FAILURE = 'We could not schedule the event just now. Please try again.'
 
@@ -22,6 +24,7 @@ const name = ref('')
 const description = ref('')
 const startDateTime = ref('')
 const endDateTime = ref('')
+const registrationLimit = ref(REGISTRATION_LIMIT.max)
 const selectedGameTypeId = ref('')
 
 /** Keyed by setting key, and only ever holding the currently selected game's settings. */
@@ -31,39 +34,27 @@ const selectedGameType = computed<GameTypeTemplate | undefined>(() =>
   gameTypes.value.find((gameType) => gameType.gameTypeId === selectedGameTypeId.value),
 )
 
+const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
+
 /** The API blames a rejected setting on the field its value arrived in. */
 const SETTING_FIELD_PREFIX = 'gameType.selections.'
 
 function settingError(key: string): string | undefined {
-  return failure.value?.fieldErrors[`${SETTING_FIELD_PREFIX}${key}`]?.[0]
+  return fieldError(`${SETTING_FIELD_PREFIX}${key}`)
 }
-
-/** Model validation names the request property it rejected, such as `Name`. */
-function fieldError(property: string): string | undefined {
-  return failure.value?.fieldErrors[property]?.[0]
-}
-
-// A failure the API attributed entirely to fields needs no banner. One it did
-// not explain at all falls back to this view's own copy, since a raw error
-// message is never shown.
-const formError = computed(() => {
-  const current = failure.value
-
-  if (!current) {
-    return ''
-  }
-
-  if (current.formMessages.length > 0) {
-    return current.formMessages.join(' ')
-  }
-
-  return Object.keys(current.fieldErrors).length > 0 ? '' : UNEXPECTED_FAILURE
-})
 
 // Reported errors describe the details as they were submitted, so the first
 // correction retires them rather than leaving them under fields being fixed.
 watch(
-  [name, description, startDateTime, endDateTime, selectedGameTypeId, selections],
+  [
+    name,
+    description,
+    startDateTime,
+    endDateTime,
+    registrationLimit,
+    selectedGameTypeId,
+    selections,
+  ],
   () => clearFailure(),
   { deep: true },
 )
@@ -85,13 +76,6 @@ watch(gameTypes, (loaded) => {
   }
 })
 
-/**
- * Converts a `datetime-local` value to the UTC instant it denotes.
- *
- * The control yields wall-clock time in the browser's zone and no offset, so
- * the zone has to be applied rather than assumed away: appending `Z` would
- * relabel 18:00 local as 18:00 UTC and shift the event by the offset.
- */
 function toUtcInstant(localValue: string): string {
   return new Date(localValue).toISOString()
 }
@@ -102,6 +86,7 @@ async function submit() {
     description: description.value || undefined,
     startDateTime: toUtcInstant(startDateTime.value),
     endDateTime: toUtcInstant(endDateTime.value),
+    registrationLimit: registrationLimit.value,
     gameType: {
       gameTypeId: selectedGameTypeId.value,
       selections: selections.value,
@@ -183,6 +168,27 @@ load()
 
       <AppField
         v-slot="{ id, describedBy, invalid }"
+        label="Player limit"
+        :hint="`Between ${REGISTRATION_LIMIT.min} and ${REGISTRATION_LIMIT.max} players.`"
+        :error="fieldError('RegistrationLimit')"
+      >
+        <input
+          :id="id"
+          v-model.number="registrationLimit"
+          class="create-event__limit"
+          type="number"
+          inputmode="numeric"
+          :min="REGISTRATION_LIMIT.min"
+          :max="REGISTRATION_LIMIT.max"
+          step="1"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
+          required
+        />
+      </AppField>
+
+      <AppField
+        v-slot="{ id, describedBy, invalid }"
         label="Game"
         :error="fieldError('gameType.gameTypeId')"
       >
@@ -233,6 +239,11 @@ load()
   max-width: 480px;
 }
 
+.create-event__limit {
+  width: 5.5rem;
+  text-align: right;
+}
+
 .create-event__settings {
   display: flex;
   flex-direction: column;
@@ -252,10 +263,10 @@ load()
 .create-event__error {
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--color-accent-border);
+  border: 1px solid var(--color-danger-border);
   border-radius: 6px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .create-event__actions {

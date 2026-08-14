@@ -81,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEventsRepository, EventsRepository>();
+        services.AddScoped<IEventRegistrationsRepository, EventRegistrationsRepository>();
         services.AddScoped<IGameTypesRepository, GameTypesRepository>();
 
         return services;

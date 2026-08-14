@@ -64,10 +64,8 @@ Layouts are chosen by nesting, not by route meta. Each layout is a parent route
 record whose `component` is the layout and whose `children` are the pages that
 wear it. The layout renders `<RouterView />` where the page goes.
 
-- `DefaultLayout` is the standard chrome: header nav, content, footer.
-- `FocusedLayout` is stripped chrome for single-task mobile flows reached by QR
-  code. It has no registered routes yet, by design, and gets one when the
-  registration flow lands.
+- `DefaultLayout` is the standard chrome: header nav, content, footer. It is the
+  only layout today, so every page is one of its children.
 
 To add a page, add its record under the layout it belongs to and give it a
 `meta.title`, which the router composes into the document title.
