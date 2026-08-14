@@ -17,7 +17,7 @@ const props = defineProps<{
   eventId: string
 }>()
 
-const { event, isLoading, error, load } = useEvent(() => props.eventId)
+const { event, isLoading, error, load, calendarInviteUrl } = useEvent(() => props.eventId)
 
 const { gameType, isLoading: isLoadingGameType } = useGameType(
   () => event.value?.gameType.gameTypeId,
@@ -81,6 +81,17 @@ const hasSelections = computed(
         <GameTypeSelectionList :settings="gameTypeSettings" :selections="event.selections" />
       </template>
 
+      <!-- A plain link rather than a fetch, so the browser hands the file to a
+           calendar app instead of the page holding it in memory. -->
+      <a
+        v-if="calendarInviteUrl"
+        class="event-detail__calendar-invite"
+        :href="calendarInviteUrl"
+        download
+      >
+        Add to calendar
+      </a>
+
       <h2 class="event-detail__registration-heading">Registration</h2>
 
       <EventQrCode class="event-detail__qr-code" :event-id="event.eventId" />
@@ -129,6 +140,22 @@ const hasSelections = computed(
 .event-detail__settings-title {
   margin: 24px 0 12px;
   font-size: 1.125rem;
+}
+
+.event-detail__calendar-invite {
+  margin-top: 24px;
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.event-detail__calendar-invite:hover {
+  box-shadow: var(--shadow-sm);
+  text-decoration: underline;
 }
 
 .event-detail__registration-heading {

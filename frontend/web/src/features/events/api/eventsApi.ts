@@ -1,3 +1,4 @@
+import { env } from '@/config/env'
 import { httpClient, type RequestOptions } from '@/services/http/httpClient'
 import type { Page } from '@/services/http/pagination'
 
@@ -48,6 +49,13 @@ export const eventsApi = {
     }
 
     return event
+  },
+
+  // A URL for the browser to navigate to, not a request. The browser fetches it
+  // and saves the response itself, so it carries the base path `httpClient`
+  // would otherwise prepend.
+  calendarInviteUrl(eventId: string): string {
+    return `${env.apiBasePath}${EVENTS_PATH}/${encodeURIComponent(eventId)}/calendar.ics`
   },
 
   async create(
