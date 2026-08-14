@@ -27,7 +27,7 @@ namespace Wizards.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("EndDateTime")
+                    b.Property<DateTime>("EndDateTime")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("GameTypeId")
@@ -59,6 +59,34 @@ namespace Wizards.Infrastructure.Migrations
                     b.ToTable("events", (string)null);
                 });
 
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.EventGameTypeSelection", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("event_game_type_selections", (string)null);
+                });
+
             modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameType", b =>
                 {
                     b.Property<int>("Id")
@@ -85,6 +113,75 @@ namespace Wizards.Infrastructure.Migrations
                     b.ToTable("game_types", (string)null);
                 });
 
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameTypeSetting", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DefaultValue")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GameTypeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MinValue")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameTypeId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("game_type_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameTypeSettingOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("GameTypeSettingId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameTypeSettingId", "Value")
+                        .IsUnique();
+
+                    b.ToTable("game_type_setting_options", (string)null);
+                });
+
             modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.Event", b =>
                 {
                     b.HasOne("Wizards.Infrastructure.Persistence.Records.GameType", "GameType")
@@ -94,6 +191,54 @@ namespace Wizards.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("GameType");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.EventGameTypeSelection", b =>
+                {
+                    b.HasOne("Wizards.Infrastructure.Persistence.Records.Event", "Event")
+                        .WithMany("Selections")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameTypeSetting", b =>
+                {
+                    b.HasOne("Wizards.Infrastructure.Persistence.Records.GameType", "GameType")
+                        .WithMany("Settings")
+                        .HasForeignKey("GameTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameType");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameTypeSettingOption", b =>
+                {
+                    b.HasOne("Wizards.Infrastructure.Persistence.Records.GameTypeSetting", "Setting")
+                        .WithMany("Options")
+                        .HasForeignKey("GameTypeSettingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Setting");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.Event", b =>
+                {
+                    b.Navigation("Selections");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameType", b =>
+                {
+                    b.Navigation("Settings");
+                });
+
+            modelBuilder.Entity("Wizards.Infrastructure.Persistence.Records.GameTypeSetting", b =>
+                {
+                    b.Navigation("Options");
                 });
 #pragma warning restore 612, 618
         }

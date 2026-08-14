@@ -12,18 +12,30 @@ namespace Wizards.Infrastructure.Persistence.Repositories;
 internal sealed class GameTypesRepository(AppDbContext dbContext) : IGameTypesRepository
 {
     /// <inheritdoc />
-    public async Task<Domain.Entities.GameType?> GetGameTypeByNameAsync(
-        string name,
+    public async Task<Domain.Entities.GameType?> GetGameTypeByPublicIdAsync(
+        Guid publicId,
         CancellationToken cancellationToken)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        // The name column is declared NOCASE, so an ordinary equality comparison is both
-        // case-insensitive and able to seek the unique index on it.
         Records.GameType? gameTypeRecord = await dbContext.GameTypes
             .AsNoTracking()
-            .FirstOrDefaultAsync(gameType => gameType.Name == name, cancellationToken);
+            .Include(gameType => gameType.Settings)
+                .ThenInclude(setting => setting.Options)
+            .FirstOrDefaultAsync(gameType => gameType.PublicId == publicId, cancellationToken);
 
         return gameTypeRecord?.ToEntity();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<Domain.Entities.GameType>> GetGameTypesAsync(
+        CancellationToken cancellationToken)
+    {
+        List<Records.GameType> gameTypeRecords = await dbContext.GameTypes
+            .AsNoTracking()
+            .Include(gameType => gameType.Settings)
+                .ThenInclude(setting => setting.Options)
+            .OrderBy(gameType => gameType.Name)
+            .ToListAsync(cancellationToken);
+
+        return gameTypeRecords.Select(gameTypeRecord => gameTypeRecord.ToEntity()).ToList();
     }
 }

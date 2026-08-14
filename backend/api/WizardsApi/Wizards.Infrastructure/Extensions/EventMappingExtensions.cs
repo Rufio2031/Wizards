@@ -25,7 +25,14 @@ internal static class EventMappingExtensions
             eventRecord.StartDateTime,
             eventRecord.EndDateTime,
             eventRecord.GameType.ToEntity(),
-            eventRecord.RegistrationLimit);
+            eventRecord.RegistrationLimit,
+            eventRecord.Selections
+                .OrderBy(selection => selection.Id)
+                .Select(selection => Domain.Entities.EventGameTypeSelection.Reconstitute(
+                    selection.Id,
+                    selection.Key,
+                    selection.Value))
+                .ToList());
     }
 
     /// <summary>
@@ -53,7 +60,15 @@ internal static class EventMappingExtensions
             GameTypeId = eventEntity.GameType.Id,
             StartDateTime = eventEntity.StartDateTime,
             EndDateTime = eventEntity.EndDateTime,
-            RegistrationLimit = eventEntity.RegistrationLimit
+            RegistrationLimit = eventEntity.RegistrationLimit,
+            Selections = eventEntity.Selections
+                .Select(selection => new Persistence.Records.EventGameTypeSelection
+                {
+                    Id = selection.Id,
+                    Key = selection.Key,
+                    Value = selection.Value
+                })
+                .ToList()
         };
     }
 }

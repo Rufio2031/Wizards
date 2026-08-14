@@ -11,6 +11,12 @@ export const eventsRoutes: RouteRecordRaw[] = [
     meta: { title: 'Events' },
   },
   {
+    path: 'events/new',
+    name: RouteNames.eventCreate,
+    component: () => import('./views/CreateEventView.vue'),
+    meta: { title: 'Schedule an event' },
+  },
+  {
     path: 'events/:eventId',
     name: RouteNames.eventDetail,
     component: () => import('./views/EventDetailView.vue'),

@@ -1,6 +1,7 @@
-import { onScopeDispose, ref, shallowRef } from 'vue'
+import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 
 import { isAbortError, type RequestOptions } from '@/services/http/httpClient'
+import { toApiFailure } from '@/services/http/validation'
 
 export interface UseAsyncRequestOptions<TData> {
   /** Value `data` holds until the first response arrives. */
@@ -13,16 +14,23 @@ export interface UseAsyncRequestOptions<TData> {
 /**
  * Runs a cancellable API call and owns its loading, error, and data state.
  *
- * @param send Performs the call, forwarding the abort signal it is handed.
+ * A new run aborts the previous one and only the newest run writes state, which
+ * suits reads where only the latest answer matters. Aborting does not undo a
+ * write the server already received, so a caller with a non-idempotent `send`
+ * must stop a second run from starting rather than rely on the abort.
+ *
+ * @param send Performs the call, forwarding the abort signal it is handed and
+ * whatever `run` was called with.
  * @param options `initialValue` for `data` and the `failureMessage` logged on
  * failure.
- * @returns `data`, `isLoading`, `error` from the last failure (a log detail,
- * not display copy), and `refresh` to run the call again. A run aborts the
- * previous one, only the newest undisposed run may write state, and the
- * in-flight call is aborted when the owning scope is disposed.
+ * @returns `data`, `isLoading`, `error` from the last failure (a detail to map
+ * or log, never display copy), `failure` carrying that error's validation
+ * messages split by field, `run` to perform the call, and `clearError` to drop
+ * a reported failure without running again. The in-flight call is aborted when
+ * the owning scope is disposed.
  */
-export function useAsyncRequest<TData>(
-  send: (options: RequestOptions) => Promise<TData>,
+export function useAsyncRequest<TData, TArgs = void>(
+  send: (options: RequestOptions, args: TArgs) => Promise<TData>,
   { initialValue, failureMessage }: UseAsyncRequestOptions<TData>,
 ) {
   const data = shallowRef<TData>(initialValue)
@@ -37,7 +45,7 @@ export function useAsyncRequest<TData>(
   // these guards are what actually keep stale or discarded runs from writing.
   const canWrite = (runId: number) => !isDisposed && runId === latestRunId
 
-  async function refresh(): Promise<void> {
+  async function run(args: TArgs): Promise<TData | null> {
     controller?.abort()
     controller = new AbortController()
 
@@ -47,19 +55,25 @@ export function useAsyncRequest<TData>(
     error.value = null
 
     try {
-      const result = await send({ signal: controller.signal })
+      const result = await send({ signal: controller.signal }, args)
 
-      if (canWrite(runId)) {
-        data.value = result
+      if (!canWrite(runId)) {
+        return null
       }
+
+      data.value = result
+
+      return result
     } catch (caught) {
       if (isAbortError(caught) || !canWrite(runId)) {
-        return
+        return null
       }
 
       console.error(failureMessage, caught)
 
       error.value = caught instanceof Error ? caught : new Error(failureMessage)
+
+      return null
     } finally {
       if (canWrite(runId)) {
         isLoading.value = false
@@ -72,5 +86,12 @@ export function useAsyncRequest<TData>(
     controller?.abort()
   })
 
-  return { data, isLoading, error, refresh }
+  const failure = computed(() => toApiFailure(error.value))
+
+  /** Drops the last failure, leaving `data` as it was. */
+  function clearError() {
+    error.value = null
+  }
+
+  return { data, isLoading, error, failure, clearError, run }
 }

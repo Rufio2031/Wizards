@@ -37,11 +37,17 @@ internal sealed class Event
     public DateTime StartDateTime { get; set; }
 
     /// <summary>
-    /// Gets or sets the instant the event ends, in UTC, or <see langword="null"/> when the event has no
-    /// scheduled end. Marked UTC on read in the same way as <see cref="StartDateTime"/>.
+    /// Gets or sets the instant the event ends, in UTC. Marked UTC on read in the same way as
+    /// <see cref="StartDateTime"/>.
     /// </summary>
-    public DateTime? EndDateTime { get; set; }
+    public DateTime EndDateTime { get; set; }
 
     /// <summary>Gets or sets the maximum number of players who may register.</summary>
     public int RegistrationLimit { get; set; }
+
+    /// <summary>
+    /// Gets or sets the settings the organizer settled for the event. Only populated on reads that
+    /// load them.
+    /// </summary>
+    public List<EventGameTypeSelection> Selections { get; set; } = [];
 }

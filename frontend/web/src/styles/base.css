@@ -84,3 +84,23 @@ code {
   color: var(--color-text-strong);
   background: var(--color-surface);
 }
+
+input:not([type='checkbox']):not([type='range']),
+select,
+textarea {
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+input:read-only:not([type='checkbox']):not([type='range']) {
+  color: var(--color-status-muted);
+  background: var(--color-surface-subtle);
+}
+
+[aria-invalid='true'] {
+  border-color: var(--color-accent-border);
+}

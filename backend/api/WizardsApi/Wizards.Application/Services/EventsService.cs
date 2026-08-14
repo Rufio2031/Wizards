@@ -68,8 +68,8 @@ internal sealed class EventsService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        GameType? gameType = await gameTypesRepository.GetGameTypeByNameAsync(
-            request.GameType.Name,
+        GameType? gameType = await gameTypesRepository.GetGameTypeByPublicIdAsync(
+            request.GameType.GameTypeId,
             cancellationToken);
 
         if (gameType is null)
@@ -81,16 +81,24 @@ internal sealed class EventsService(
 
         try
         {
+            IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(
+                request.GameType.Selections?.Select(
+                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+
             @event = Event.Create(
                 request.Name,
                 request.Description,
                 gameType,
                 request.StartDateTime,
-                request.EndDateTime);
+                request.EndDateTime,
+                selections);
         }
         catch (DomainException exception)
         {
-            return EventWriteResult.Failure(EventErrors.Invalid(exception.Message));
+            return EventWriteResult.Failure(
+                exception.Key is { } settingKey
+                    ? EventErrors.InvalidSelection(exception.Message, settingKey)
+                    : EventErrors.Invalid(exception.Message));
         }
 
         await eventsRepository.AddEventAsync(@event, cancellationToken);

@@ -13,4 +13,10 @@ internal sealed class GameType
 
     /// <summary>Gets or sets the display name of the game type.</summary>
     public required string Name { get; set; }
+
+    /// <summary>
+    /// Gets or sets the settings the game type exposes. Only populated on reads that explicitly load
+    /// them.
+    /// </summary>
+    public List<GameTypeSetting> Settings { get; set; } = [];
 }

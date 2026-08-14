@@ -31,7 +31,7 @@ export function useEvents(pageSize: number = DEFAULT_PAGE_SIZE) {
     data,
     isLoading,
     error,
-    refresh: load,
+    run: load,
   } = useAsyncRequest<Page<GameEvent>>(
     (options) => eventsApi.list({ skip: 0, take: pageSize }, options),
     {

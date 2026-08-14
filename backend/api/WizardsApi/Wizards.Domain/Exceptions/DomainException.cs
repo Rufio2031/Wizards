@@ -12,6 +12,13 @@ namespace Wizards.Domain.Exceptions;
 public class DomainException : Exception
 {
     /// <summary>
+    /// The name of the single thing the broken rule is about, such as the key of a game type setting,
+    /// or <see langword="null"/> when the rule spans more than one. Names the thing in the domain's own
+    /// terms; translating it into a field a caller would recognize is the caller's job.
+    /// </summary>
+    public string? Key { get; init; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="DomainException"/> class.
     /// </summary>
     public DomainException()
