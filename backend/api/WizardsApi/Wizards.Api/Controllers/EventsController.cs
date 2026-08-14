@@ -23,22 +23,30 @@ namespace Wizards.Api.Controllers;
 public class EventsController(IEventsService eventsService) : ControllerBase
 {
     /// <summary>
-    /// Retrieves a page of events, ordered by when they start.
+    /// Retrieves a page of events, ordered as asked and optionally narrowed to a date range.
     /// </summary>
+    /// <remarks>
+    /// The range bounds an event's start, not its end, and is half open: an event starting at exactly
+    /// <c>startingOnOrAfter</c> is carried, and one starting at exactly <c>startingBefore</c> is not,
+    /// so adjacent ranges tile without overlapping. Both bounds denote instants in UTC, resolved as
+    /// <see cref="GetEventsRequest.StartingOnOrAfterUtc"/> describes.
+    /// </remarks>
     /// <param name="request">
-    /// The paging window to read. Omitting it reads the first
-    /// <see cref="GetEventsRequest.DefaultTake"/> events.
+    /// The paging window, ordering and date range to read. Every part is optional, and omitting it all
+    /// reads the first <see cref="GetEventsRequest.DefaultTake"/> events by start date and time,
+    /// earliest first, over an unbounded range.
     /// </param>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
     /// <returns>
-    /// The page of events falling in the requested window, carrying the window itself and the number of
-    /// events in the whole collection in its <see cref="Page{T}.Pagination"/>. The page carries no
-    /// events when the window falls past the end.
+    /// The page of events falling in the requested window, carrying the window itself and the size of
+    /// the selection in its <see cref="Page{T}.Pagination"/>. The page carries no events when the
+    /// window falls past the end, or when nothing falls in the range.
     /// </returns>
     /// <response code="200">The page was retrieved.</response>
     /// <response code="400">
-    /// The window skips a negative number of events, or takes fewer than one or more than
-    /// <see cref="GetEventsRequest.MaxTake"/>.
+    /// The window skips a negative number of events, takes fewer than one or more than
+    /// <see cref="GetEventsRequest.MaxTake"/>, names a sort field or direction that does not exist, or
+    /// bounds the range with a start that falls after its end.
     /// </response>
     [HttpGet]
     [ProducesResponseType<Page<EventResponse>>(StatusCodes.Status200OK)]

@@ -1,110 +1,86 @@
 <script setup lang="ts">
-// Summary card for one event: name, date, venue, and remaining seats.
-import { computed } from 'vue'
+// Summary card for a single event, optionally linking to its detail page.
+import type { RouteLocationRaw } from 'vue-router'
+
+import AppBadge from '@/components/AppBadge.vue'
+import { formatSchedule } from '@/utils/dateTime'
 
 import type { GameEvent } from '../types/event'
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+withDefaults(
+  defineProps<{
+    event: GameEvent
 
-const UNKNOWN_DATE_LABEL = 'Date to be announced'
-
-// Module level so a formatter is built once, not per card per render.
-const DATE_FORMAT: Intl.DateTimeFormatOptions = {
-  weekday: 'short',
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-}
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, DATE_FORMAT)
-
-const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  ...DATE_FORMAT,
-  hour: 'numeric',
-  minute: '2-digit',
-})
-
-const props = defineProps<{
-  /** The event to display. */
-  event: GameEvent
-}>()
-
-const formattedDate = computed(() => {
-  const raw = (props.event.date ?? '').trim()
-  const isDateOnly = DATE_ONLY.test(raw)
-
-  // A bare `YYYY-MM-DD` parses as UTC midnight, which renders as the previous
-  // day west of Greenwich, so pin it to local midnight instead.
-  const parsed = new Date(isDateOnly ? `${raw}T00:00:00` : raw)
-
-  if (Number.isNaN(parsed.getTime())) {
-    return UNKNOWN_DATE_LABEL
-  }
-
-  return isDateOnly
-    ? dateFormatter.format(parsed)
-    : dateTimeFormatter.format(parsed)
-})
-
-// Clamped because registration counts will come from an API that may report a
-// closed event as over capacity.
-const seatsLeft = computed(() =>
-  Math.max(0, props.event.capacity - props.event.registered),
-)
-
-const isFull = computed(() => seatsLeft.value === 0)
-
-const seatsLabel = computed(() =>
-  isFull.value ? 'Full' : `${seatsLeft.value} seats left`,
+    /** Omit to render the card inert. */
+    to?: RouteLocationRaw
+  }>(),
+  { to: undefined },
 )
 </script>
 
 <template>
   <article class="event-card">
-    <h2 class="event-card__name">{{ event.name }}</h2>
+    <h3 class="event-card__name">
+      <RouterLink v-if="to" class="event-card__link" :to="to">{{ event.name }}</RouterLink>
 
-    <p class="event-card__meta">{{ formattedDate }} &middot; {{ event.location }}</p>
+      <template v-else>{{ event.name }}</template>
+    </h3>
+
     <p class="event-card__meta">
-      {{ event.registered }} of {{ event.capacity }} registered
+      {{ formatSchedule(event.startDateTime, event.endDateTime) }}
     </p>
 
-    <p class="event-card__seats" :class="{ 'event-card__seats--full': isFull }">
-      {{ seatsLabel }}
+    <p v-if="event.description" class="event-card__description">
+      {{ event.description }}
     </p>
+
+    <AppBadge class="event-card__game-type">
+      {{ event.gameType.name }}
+    </AppBadge>
   </article>
 </template>
 
 <style scoped>
 .event-card {
+  position: relative;
   padding: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--color-surface);
 }
 
+.event-card:has(.event-card__link):hover {
+  box-shadow: var(--shadow-sm);
+}
+
 .event-card__name {
-  margin-bottom: 4px;
+  margin: 0;
+}
+
+.event-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 
 .event-card__meta {
-  font-size: 0.875rem;
-}
-
-.event-card__seats {
-  display: inline-block;
   margin-top: 8px;
-  padding: 4px 12px;
-  /* Transparent rather than absent so every variant is the same size. */
-  border: 1px solid transparent;
-  border-radius: 999px;
   font-size: 0.875rem;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
 }
 
-/* Achromatic: a full event is unavailable, not an error. */
-.event-card__seats--full {
-  color: var(--color-status-muted);
-  background: var(--color-status-muted-soft);
+.event-card__description {
+  margin-top: 16px;
+  line-height: 1.6;
+  color: var(--color-text-strong);
+}
+
+.event-card__game-type {
+  margin-top: 16px;
 }
 </style>

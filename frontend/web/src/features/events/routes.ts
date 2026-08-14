@@ -10,4 +10,11 @@ export const eventsRoutes: RouteRecordRaw[] = [
     component: () => import('./views/EventsView.vue'),
     meta: { title: 'Events' },
   },
+  {
+    path: 'events/:eventId',
+    name: RouteNames.eventDetail,
+    component: () => import('./views/EventDetailView.vue'),
+    props: true,
+    meta: { title: 'Event' },
+  },
 ]

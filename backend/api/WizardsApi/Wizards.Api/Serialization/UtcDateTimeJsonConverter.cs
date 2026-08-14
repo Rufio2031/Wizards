@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Wizards.Domain.Extensions;
 
 namespace Wizards.Api.Serialization;
 
@@ -9,20 +10,19 @@ namespace Wizards.Api.Serialization;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the one place inbound instants are normalized. Everything behind it, the request DTOs, the
-/// services, the domain entities and the database, deals only in <see cref="DateTimeKind.Utc"/>, and
-/// <c>Event</c> rejects anything else outright, so a caller's zone is resolved here or nowhere.
+/// This is the one place instants arriving in a request body are normalized, and everything behind
+/// it deals only in <see cref="DateTimeKind.Utc"/>. Instants arriving in a query string are bound by
+/// the framework and never reach this converter, as
+/// <see cref="Wizards.Application.DTOs.Requests.GetEventsRequest.StartingOnOrAfterUtc"/> describes.
 /// </para>
 /// <para>
-/// A value carrying an offset is converted to the instant it denotes, so <c>18:00:00+02:00</c> and
-/// <c>16:00:00Z</c> are the same instant and store identically. A value carrying no zone marker is
-/// read as UTC rather than as the server's local time, because the server's zone is an accident of
-/// deployment and would make the same request mean different things on different hosts.
+/// A value carrying an offset becomes the instant it denotes, so <c>18:00:00+02:00</c> and
+/// <c>16:00:00Z</c> store identically. A value carrying no zone marker is read as UTC rather than as
+/// server-local time, because the server's zone is an accident of deployment.
 /// </para>
 /// <para>
 /// Registering this replaces the default handling for <see cref="DateTime"/> and, since the
-/// serializer unwraps nullables onto the underlying converter, for <see cref="Nullable{T}"/> of
-/// <see cref="DateTime"/> as well.
+/// serializer unwraps nullables, for <see cref="Nullable{T}"/> of <see cref="DateTime"/> as well.
 /// </para>
 /// </remarks>
 public sealed class UtcDateTimeJsonConverter : JsonConverter<DateTime>
@@ -45,10 +45,10 @@ public sealed class UtcDateTimeJsonConverter : JsonConverter<DateTime>
     /// <param name="options">The serializer options in force. Not consulted.</param>
     /// <returns>The instant, carrying <see cref="DateTimeKind.Utc"/>.</returns>
     /// <exception cref="JsonException">
-    /// Thrown when the value is not a string, or is not an ISO 8601 date and time of the shape
-    /// <c>2026-08-13T16:00:00</c>, with the seconds or the fractional seconds optionally omitted and
-    /// with an optional <c>Z</c> or offset suffix. A date on its own is rejected, because an instant
-    /// needs a time. Model binding reports this as a validation error rather than a server fault.
+    /// Thrown when the value is not a string, or not of the shape <c>2026-08-13T16:00:00</c> with
+    /// optional seconds, fractional seconds and <c>Z</c> or offset suffix. A bare date is rejected,
+    /// because an instant needs a time. Model binding surfaces this as a validation error rather
+    /// than a server fault.
     /// </exception>
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -80,13 +80,6 @@ public sealed class UtcDateTimeJsonConverter : JsonConverter<DateTime>
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        DateTime utcInstant = value.Kind switch
-        {
-            DateTimeKind.Utc => value,
-            DateTimeKind.Local => value.ToUniversalTime(),
-            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
-        };
-
-        writer.WriteStringValue(utcInstant);
+        writer.WriteStringValue(value.ToUtcInstant());
     }
 }

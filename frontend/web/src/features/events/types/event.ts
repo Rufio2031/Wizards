@@ -1,29 +1,14 @@
-/**
- * Shape of a single tabletop card game event as the API returns it.
- *
- * The API has no events controller yet, so no response DTO exists to mirror.
- * This is the provisional contract and must be reconciled with the real DTO
- * once it lands, the backend being the source of truth.
- */
-export interface GameEvent {
-  /** Stable identifier, used as the list key. */
-  id: string
-
-  /** Display name of the event. */
+export interface GameType {
+  gameTypeId: string
   name: string
+}
 
-  /** Start of the event as an ISO 8601 date or date-time string. */
-  date: string
-
-  /** Venue or store hosting the event. */
-  location: string
-
-  /** Total number of seats the venue can seat. */
-  capacity: number
-
-  /**
-   * Seats already claimed. Expected to stay within `capacity`, but consumers
-   * should not assume it: this comes from an API.
-   */
-  registered: number
+// The API omits nulls, so `description` and `endDateTime` are absent, never null.
+export interface GameEvent {
+  eventId: string
+  name: string
+  description?: string
+  startDateTime: string
+  endDateTime?: string
+  gameType: GameType
 }

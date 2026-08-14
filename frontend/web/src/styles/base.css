@@ -1,5 +1,5 @@
 :root {
-  font: 18px/145% var(--font-sans);
+  font: 18px/1.45 var(--font-sans);
   letter-spacing: 0.18px;
   color: var(--color-text);
   background: var(--color-bg);
@@ -35,7 +35,8 @@ summary:focus-visible,
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--font-heading);
   font-weight: 500;
   color: var(--color-text-strong);
@@ -43,6 +44,7 @@ h2 {
 
 h1 {
   font-size: 56px;
+  line-height: 110%;
   letter-spacing: -1.68px;
   margin: 32px 0;
   @media (max-width: 1024px) {
@@ -57,6 +59,15 @@ h2 {
   margin: 0 0 8px;
   @media (max-width: 1024px) {
     font-size: 20px;
+  }
+}
+h3 {
+  font-size: 20px;
+  line-height: 125%;
+  letter-spacing: -0.2px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 18px;
   }
 }
 p {

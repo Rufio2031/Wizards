@@ -1,4 +1,5 @@
 using Wizards.Domain.Entities;
+using Wizards.Domain.Enums;
 using Wizards.Domain.Models;
 
 namespace Wizards.Domain.Interfaces.Repositories;
@@ -25,25 +26,31 @@ public interface IEventsRepository
     Task<Event?> GetEventByPublicIdAsync(Guid publicId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Retrieves a page of events, ordered by when they start and broken ties by primary key so the
-    /// same window always yields the same events.
+    /// Retrieves a page of the events falling in a date range, ordered as the query asks.
     /// </summary>
     /// <remarks>
-    /// The window is applied by the store and is served by an index over the ordering, so a page reads
-    /// and transfers the page rather than the collection. Establishing the total the page reports may
-    /// cost a second read.
+    /// Ties are broken by primary key in the requested direction, so the same window always yields the
+    /// same events and neighbouring pages neither repeat nor skip one.
     /// </remarks>
-    /// <param name="skip">The number of events to pass over before the page begins. Zero or greater.</param>
-    /// <param name="take">The maximum number of events the page carries. Greater than zero.</param>
+    /// <param name="query">
+    /// The window, ordering and date range to read over, with bounds already in UTC as
+    /// <see cref="EventQuery"/> requires.
+    /// </param>
     /// <param name="cancellationToken">Cancels the read before it completes.</param>
     /// <returns>
-    /// The page of events falling in the window, each with its <see cref="Event.GameType"/> populated.
-    /// The page carries no events when the window falls past the end. Never <see langword="null"/>.
+    /// The page of events falling in the window, each with its <see cref="Event.GameType"/> populated,
+    /// carrying no events when the window falls past the end of the range.
     /// </returns>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <paramref name="skip"/> is negative or <paramref name="take"/> is zero or negative.
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="query"/> is <see langword="null"/>.
     /// </exception>
-    Task<EventPage> GetEventsAsync(int skip, int take, CancellationToken cancellationToken);
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <see cref="EventQuery.Skip"/> is negative, <see cref="EventQuery.Take"/> is zero or
+    /// negative, or <see cref="EventQuery.SortField"/> names a field the implementation cannot order
+    /// by, the last guarding a member added to <see cref="EventSortField"/> and left unmapped, and so
+    /// unreachable from a request, whose sort field is checked at the API boundary.
+    /// </exception>
+    Task<EventPage> GetEventsAsync(EventQuery query, CancellationToken cancellationToken);
 
     /// <summary>
     /// Stages the insertion of a new event.

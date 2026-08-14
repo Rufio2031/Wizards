@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouteNames } from '@/router/routeNames'
+import AppAction from '@/components/AppAction.vue'
 </script>
 
 <template>
@@ -11,14 +12,9 @@ import { RouteNames } from '@/router/routeNames'
       players find it and claim a seat, and everyone sees the same seat count.
     </p>
 
-    <p>
-      Nothing is registerable yet. This is the first skeleton, and the events
-      API is not live, so the list comes up empty.
-    </p>
-
-    <RouterLink class="home__cta" :to="{ name: RouteNames.events }">
+    <AppAction class="home__cta" :to="{ name: RouteNames.events }">
       Browse events
-    </RouterLink>
+    </AppAction>
   </section>
 </template>
 
@@ -42,15 +38,5 @@ import { RouteNames } from '@/router/routeNames'
 
 .home__cta {
   margin-top: 8px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  text-decoration: none;
-}
-
-.home__cta:hover {
-  box-shadow: var(--shadow-sm);
 }
 </style>

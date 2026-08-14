@@ -1,5 +1,8 @@
+using System.Linq.Expressions;
+
 using Microsoft.EntityFrameworkCore;
 
+using Wizards.Domain.Enums;
 using Wizards.Domain.Interfaces.Repositories;
 using Wizards.Domain.Models;
 using Wizards.Infrastructure.Extensions;
@@ -35,24 +38,47 @@ internal sealed class EventsRepository(AppDbContext dbContext) : IEventsReposito
 
     /// <inheritdoc />
     public async Task<EventPage> GetEventsAsync(
-        int skip,
-        int take,
+        EventQuery query,
         CancellationToken cancellationToken)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(skip);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(take);
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentOutOfRangeException.ThrowIfNegative(query.Skip);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(query.Take);
 
-        IQueryable<Records.Event> query = dbContext.Events
+        Expression<Func<Records.Event, DateTime>> sortKey = query.SortField switch
+        {
+            EventSortField.StartDateTime => storedEvent => storedEvent.StartDateTime,
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(query),
+                query.SortField,
+                "Events cannot be ordered by that field.")
+        };
+
+        IQueryable<Records.Event> events = dbContext.Events
             .AsNoTracking();
 
-        int totalCount = await query.CountAsync(cancellationToken);
+        if (query.StartingOnOrAfter is DateTime startingOnOrAfter)
+        {
+            events = events.Where(storedEvent => storedEvent.StartDateTime >= startingOnOrAfter);
+        }
 
-        List<Records.Event> eventRecords = await query
+        if (query.StartingBefore is DateTime startingBefore)
+        {
+            events = events.Where(storedEvent => storedEvent.StartDateTime < startingBefore);
+        }
+
+        int totalCount = await events.CountAsync(cancellationToken);
+
+        IOrderedQueryable<Records.Event> orderedEvents =
+            query.SortDirection == SortDirection.Descending
+                ? events.OrderByDescending(sortKey).ThenByDescending(storedEvent => storedEvent.Id)
+                : events.OrderBy(sortKey).ThenBy(storedEvent => storedEvent.Id);
+
+        List<Records.Event> eventRecords = await orderedEvents
             .Include(storedEvent => storedEvent.GameType)
             .Include(storedEvent => storedEvent.Selections)
-            .OrderBy(storedEvent => storedEvent.StartDateTime)
-            .Skip(skip)
-            .Take(take)
+            .Skip(query.Skip)
+            .Take(query.Take)
             .ToListAsync(cancellationToken);
 
         return new EventPage(

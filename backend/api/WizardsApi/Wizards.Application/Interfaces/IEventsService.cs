@@ -10,21 +10,26 @@ namespace Wizards.Application.Interfaces;
 public interface IEventsService
 {
     /// <summary>
-    /// Retrieves a page of events, ordered by when they start.
+    /// Retrieves a page of events, ordered as the request asks and optionally narrowed to a range of
+    /// start dates and times.
     /// </summary>
     /// <remarks>
-    /// The window is read from the store rather than trimmed afterwards, and the ordering breaks ties
-    /// so that neighbouring pages neither repeat nor skip an event.
+    /// The range and the window are both applied by the store rather than trimmed afterwards, over the
+    /// ordering
+    /// <see cref="Wizards.Domain.Interfaces.Repositories.IEventsRepository.GetEventsAsync"/> describes.
+    /// The bounds are taken from <see cref="GetEventsRequest.StartingOnOrAfterUtc"/> and
+    /// <see cref="GetEventsRequest.StartingBeforeUtc"/> rather than from the values bound from the wire.
     /// </remarks>
     /// <param name="request">
-    /// The paging window to read. Its bounds are enforced at the API boundary, so a window supplied
-    /// from anywhere else must already satisfy them.
+    /// The paging window, ordering and date range to read. Its bounds, including the requirement that
+    /// the range not be inverted, are enforced at the API boundary, so a request supplied from anywhere
+    /// else must already satisfy them.
     /// </param>
     /// <param name="cancellationToken">Cancels the read before it completes.</param>
     /// <returns>
-    /// The page of events falling in the window, carrying the window itself and the size of the whole
-    /// collection in its <see cref="Page{T}.Pagination"/>. The page carries no events when the window
-    /// falls past the end. Never <see langword="null"/>.
+    /// The page of events falling in the window, carrying the window itself and the size of the
+    /// selection in its <see cref="Page{T}.Pagination"/>. The page carries no events when the window
+    /// falls past the end, or when nothing falls in the range. Never <see langword="null"/>.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="request"/> is <see langword="null"/>.</exception>
     Task<Page<EventResponse>> GetEvents(GetEventsRequest request, CancellationToken cancellationToken);

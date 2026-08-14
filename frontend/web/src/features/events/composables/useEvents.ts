@@ -1,25 +1,48 @@
+import { computed } from 'vue'
+
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
+import { emptyPage, type Page } from '@/services/http/pagination'
+import { toLocalDay } from '@/utils/dateTime'
+import { groupBy } from '@/utils/grouping'
 
 import { eventsApi } from '../api/eventsApi'
 import type { GameEvent } from '../types/event'
 
-/**
- * Loads the scheduled event list and tracks its request state.
- *
- * @returns `events` list, `isLoading` while a request is in flight, `error`
- * from the last failure (a log detail, not display copy), and `refresh` to
- * reload. Reloading and scope disposal both abort the in-flight request.
- */
-export function useEvents() {
+const DEFAULT_PAGE_SIZE = 50
+
+export interface EventDayGroup {
+  key: string
+  label: string
+  events: GameEvent[]
+}
+
+function groupEventsByDay(events: readonly GameEvent[]): EventDayGroup[] {
+  return groupBy(events, (event) => toLocalDay(event.startDateTime).key).map(
+    ({ items }) => {
+      const day = toLocalDay(items[0].startDateTime)
+
+      return { key: day.key, label: day.label, events: items }
+    },
+  )
+}
+
+export function useEvents(pageSize: number = DEFAULT_PAGE_SIZE) {
   const {
-    data: events,
+    data,
     isLoading,
     error,
-    refresh,
-  } = useAsyncRequest<GameEvent[]>((options) => eventsApi.list(options), {
-    initialValue: [],
-    failureMessage: 'Loading events failed.',
-  })
+    refresh: load,
+  } = useAsyncRequest<Page<GameEvent>>(
+    (options) => eventsApi.list({ skip: 0, take: pageSize }, options),
+    {
+      initialValue: emptyPage<GameEvent>(pageSize),
+      failureMessage: 'Loading events failed.',
+    },
+  )
 
-  return { events, isLoading, error, refresh }
+  const events = computed(() => data.value.items)
+  const eventGroups = computed(() => groupEventsByDay(events.value))
+  const pagination = computed(() => data.value.pagination)
+
+  return { events, eventGroups, pagination, isLoading, error, load }
 }
