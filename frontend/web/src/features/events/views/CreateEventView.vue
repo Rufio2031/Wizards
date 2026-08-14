@@ -22,6 +22,7 @@ const { isSaving, failure, create, clearFailure } = useCreateEvent()
 
 const name = ref('')
 const description = ref('')
+const location = ref('')
 const startDateTime = ref('')
 const endDateTime = ref('')
 const registrationLimit = ref(REGISTRATION_LIMIT.max)
@@ -49,6 +50,7 @@ watch(
   [
     name,
     description,
+    location,
     startDateTime,
     endDateTime,
     registrationLimit,
@@ -84,6 +86,7 @@ async function submit() {
   const created = await create({
     name: name.value,
     description: description.value || undefined,
+    location: location.value,
     startDateTime: toUtcInstant(startDateTime.value),
     endDateTime: toUtcInstant(endDateTime.value),
     registrationLimit: registrationLimit.value,
@@ -136,6 +139,21 @@ load()
           rows="3"
           :aria-describedby="describedBy"
           :aria-invalid="invalid"
+        />
+      </AppField>
+
+      <AppField
+        v-slot="{ id, describedBy, invalid }"
+        label="Location"
+        hint="Stated on the event's calendar invite."
+        :error="fieldError('Location')"
+      >
+        <input
+          :id="id"
+          v-model="location"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
+          required
         />
       </AppField>
 

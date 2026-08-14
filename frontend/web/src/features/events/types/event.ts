@@ -8,6 +8,7 @@ export interface GameEvent {
   eventId: string
   name: string
   description?: string
+  location: string
   startDateTime: string
   endDateTime: string
   registrationLimit: number
@@ -32,6 +33,7 @@ export const REGISTRATION_LIMIT = { min: 1, max: 30 } as const
 export interface CreateEventRequest {
   name: string
   description?: string
+  location: string
   startDateTime: string
   endDateTime: string
   registrationLimit: number

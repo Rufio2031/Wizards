@@ -63,6 +63,8 @@ const hasSelections = computed(
         {{ formatSchedule(event.startDateTime, event.endDateTime) }}
       </p>
 
+      <p class="event-detail__meta">{{ event.location }}</p>
+
       <p class="event-detail__meta">Up to {{ event.registrationLimit }} players</p>
 
       <p v-if="event.description" class="event-detail__description">

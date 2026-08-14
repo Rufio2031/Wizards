@@ -59,6 +59,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(storedEvent => storedEvent.Description)
                 .IsRequired(false)
                 .HasMaxLength(Domain.Entities.Event.MaxDescriptionLength);
+            entity.Property(storedEvent => storedEvent.Location)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.Event.MaxLocationLength);
             entity.Property(storedEvent => storedEvent.StartDateTime).IsRequired();
             entity.Property(storedEvent => storedEvent.EndDateTime).IsRequired();
             entity.Property(storedEvent => storedEvent.RegistrationLimit).IsRequired();
