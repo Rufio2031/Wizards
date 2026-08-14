@@ -1,5 +1,3 @@
-@import './styles/tokens.css';
-
 :root {
   font: 18px/145% var(--font-sans);
   letter-spacing: 0.18px;
@@ -25,8 +23,6 @@ body {
   margin: 0;
 }
 
-/* The ring belongs on every interactive element, so it is declared once here rather
-   than retyped per component. */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,

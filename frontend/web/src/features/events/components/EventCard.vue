@@ -1,22 +1,50 @@
 <script setup lang="ts">
-// Renders one event's details and how many seats are left on it.
+// Summary card for one event: name, date, venue, and remaining seats.
 import { computed } from 'vue'
 
-import type { GameEvent } from '../data/events.types'
+import type { GameEvent } from '../types/event'
+
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
+
+const UNKNOWN_DATE_LABEL = 'Date to be announced'
+
+// Module level so a formatter is built once, not per card per render.
+const DATE_FORMAT: Intl.DateTimeFormatOptions = {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+}
+
+const dateFormatter = new Intl.DateTimeFormat(undefined, DATE_FORMAT)
+
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  ...DATE_FORMAT,
+  hour: 'numeric',
+  minute: '2-digit',
+})
 
 const props = defineProps<{
   /** The event to display. */
   event: GameEvent
 }>()
 
-const formattedDate = computed(() =>
-  new Date(`${props.event.date}T00:00:00`).toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }),
-)
+const formattedDate = computed(() => {
+  const raw = (props.event.date ?? '').trim()
+  const isDateOnly = DATE_ONLY.test(raw)
+
+  // A bare `YYYY-MM-DD` parses as UTC midnight, which renders as the previous
+  // day west of Greenwich, so pin it to local midnight instead.
+  const parsed = new Date(isDateOnly ? `${raw}T00:00:00` : raw)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return UNKNOWN_DATE_LABEL
+  }
+
+  return isDateOnly
+    ? dateFormatter.format(parsed)
+    : dateTimeFormatter.format(parsed)
+})
 
 // Clamped because registration counts will come from an API that may report a
 // closed event as over capacity.

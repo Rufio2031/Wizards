@@ -1,14 +1,24 @@
 <script setup lang="ts">
-// Events page: lists every known event. Data is local until the API exists.
+// Events landing page: lists every scheduled event with its request states.
 import EventCard from '../components/EventCard.vue'
-import { events } from '../data/events'
+import { useEvents } from '../composables/useEvents'
+
+const { events, isLoading, error, refresh } = useEvents()
+
+refresh()
 </script>
 
 <template>
   <section>
     <h1 class="events__title">Events</h1>
 
-    <ul class="events__list">
+    <p v-if="isLoading">Loading events…</p>
+
+    <p v-else-if="error">We could not load events just now. Please try again.</p>
+
+    <p v-else-if="events.length === 0">No events are scheduled yet.</p>
+
+    <ul v-else class="events__list">
       <li v-for="event in events" :key="event.id">
         <EventCard :event="event" />
       </li>

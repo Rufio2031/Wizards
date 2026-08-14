@@ -16,6 +16,10 @@ services:
     build:
       dockerfile: Dockerfile.dev
     image: wizards/web:dev
+    environment:
+      # The dev server runs in a container, so its /api proxy targets compose DNS,
+      # not localhost. vite.config.ts reads this.
+      DEV_API_PROXY_TARGET: http://api-wizards:8080
     volumes:
       # Source bind mount drives the Vite dev server's HMR.
       - ./frontend/web:/app

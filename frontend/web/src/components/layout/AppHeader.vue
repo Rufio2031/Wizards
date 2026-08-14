@@ -1,17 +1,26 @@
 <script setup lang="ts">
-// Site header: wordmark plus the top-level navigation shared by every page.
+import { RouteNames } from '@/router/routeNames'
+
+import AppContainer from './AppContainer.vue'
+import AppWordmark from './AppWordmark.vue'
 </script>
 
 <template>
   <header class="app-header">
-    <div class="app-header__inner">
-      <RouterLink class="app-header__brand" to="/">Wizards</RouterLink>
+    <AppContainer>
+      <div class="app-header__inner">
+        <AppWordmark />
 
-      <nav class="app-header__nav">
-        <RouterLink class="app-header__link" to="/">Home</RouterLink>
-        <RouterLink class="app-header__link" to="/events">Events</RouterLink>
-      </nav>
-    </div>
+        <nav class="app-header__nav">
+          <RouterLink class="app-header__link" :to="{ name: RouteNames.home }">
+            Home
+          </RouterLink>
+          <RouterLink class="app-header__link" :to="{ name: RouteNames.events }">
+            Events
+          </RouterLink>
+        </nav>
+      </div>
+    </AppContainer>
   </header>
 </template>
 
@@ -20,23 +29,12 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-/* Matches .app-main so the nav lines up with page content on wide viewports. */
 .app-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 16px 24px;
-}
-
-.app-header__brand {
-  font-family: var(--font-heading);
-  font-size: 1.125rem;
-  font-weight: 500;
-  color: var(--color-text-strong);
-  text-decoration: none;
+  padding-block: 16px;
 }
 
 .app-header__nav {
