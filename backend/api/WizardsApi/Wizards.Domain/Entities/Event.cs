@@ -2,9 +2,6 @@ using Wizards.Domain.Exceptions;
 
 namespace Wizards.Domain.Entities;
 
-/// <summary>
-/// Represents an event in the system.
-/// </summary>
 public class Event
 {
     /// <summary>The maximum length of an event's name.</summary>

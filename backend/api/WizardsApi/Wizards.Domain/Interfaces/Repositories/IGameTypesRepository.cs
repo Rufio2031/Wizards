@@ -2,14 +2,6 @@ using Wizards.Domain.Entities;
 
 namespace Wizards.Domain.Interfaces.Repositories;
 
-/// <summary>
-/// Reads the registered game types.
-/// </summary>
-/// <remarks>
-/// Game types are reference data. They are resolved by callers, never created by them, so this
-/// exposes no writes. Implementations are scoped and are not safe to share across threads or
-/// concurrent requests.
-/// </remarks>
 public interface IGameTypesRepository
 {
     /// <summary>

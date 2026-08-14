@@ -1,8 +1,5 @@
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents one player's registration for an event.
-/// </summary>
 internal sealed class EventRegistration
 {
     /// <summary>Gets or sets the primary key of the registration.</summary>

@@ -5,10 +5,6 @@ using Wizards.Infrastructure.Extensions;
 
 namespace Wizards.Infrastructure.Persistence.Repositories;
 
-/// <summary>
-/// Reads the game types registered in the Wizards database.
-/// </summary>
-/// <param name="dbContext">The context to read against.</param>
 internal sealed class GameTypesRepository(AppDbContext dbContext) : IGameTypesRepository
 {
     /// <inheritdoc />

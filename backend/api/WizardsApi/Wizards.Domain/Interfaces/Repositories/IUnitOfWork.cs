@@ -1,13 +1,5 @@
 namespace Wizards.Domain.Interfaces.Repositories;
 
-/// <summary>
-/// Commits, as one atomic unit, every change staged by every repository sharing the current scope.
-/// </summary>
-/// <remarks>
-/// Repositories stage work but never persist it, so a change is not durable until this is called.
-/// Implementations are scoped alongside the repositories they commit for and are not safe to share
-/// across threads or concurrent requests.
-/// </remarks>
 public interface IUnitOfWork
 {
     /// <summary>

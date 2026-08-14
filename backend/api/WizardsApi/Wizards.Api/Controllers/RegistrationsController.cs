@@ -4,9 +4,6 @@ using Wizards.Application.DTOs.Requests;
 
 namespace Wizards.Api.Controllers;
 
-/// <summary>
-/// Serves the registrations held against a single event.
-/// </summary>
 [ApiController]
 [Route("events/{eventId:guid}/registrations")]
 [Produces("application/json")]

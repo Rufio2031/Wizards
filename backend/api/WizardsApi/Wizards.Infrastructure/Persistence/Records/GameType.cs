@@ -1,8 +1,5 @@
 namespace Wizards.Infrastructure.Persistence.Records;
 
-/// <summary>
-/// Represents a game that in-store events can be played with.
-/// </summary>
 internal sealed class GameType
 {
     /// <summary>Gets or sets the primary key of the game type.</summary>
