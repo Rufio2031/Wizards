@@ -1,5 +1,6 @@
 import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 
+import { isApiError } from '@/services/http/ApiError'
 import { isAbortError, type RequestOptions } from '@/services/http/httpClient'
 import { toApiFailure } from '@/services/http/validation'
 
@@ -14,20 +15,14 @@ export interface UseAsyncRequestOptions<TData> {
 /**
  * Runs a cancellable API call and owns its loading, error, and data state.
  *
- * A new run aborts the previous one and only the newest run writes state, which
- * suits reads where only the latest answer matters. Aborting does not undo a
- * write the server already received, so a caller with a non-idempotent `send`
- * must stop a second run from starting rather than rely on the abort.
+ * A new run aborts the previous one and only the newest run writes state.
+ * Aborting does not undo a write the server already received, so a
+ * non-idempotent `send` needs its own guard against a second run. The in-flight
+ * call is aborted when the owning scope is disposed.
  *
- * @param send Performs the call, forwarding the abort signal it is handed and
- * whatever `run` was called with.
- * @param options `initialValue` for `data` and the `failureMessage` logged on
- * failure.
- * @returns `data`, `isLoading`, `error` from the last failure (a detail to map
- * or log, never display copy), `failure` carrying that error's validation
- * messages split by field, `run` to perform the call, and `clearError` to drop
- * a reported failure without running again. The in-flight call is aborted when
- * the owning scope is disposed.
+ * @param send Performs the request with an abort signal and the run's arguments.
+ * @param options Initial `data` value and the message logged on failure.
+ * @returns `data`, `isLoading`, `error`, `failure`, `dataNotFound`, `run`, and `clearError`.
  */
 export function useAsyncRequest<TData, TArgs = void>(
   send: (options: RequestOptions, args: TArgs) => Promise<TData>,
@@ -88,10 +83,14 @@ export function useAsyncRequest<TData, TArgs = void>(
 
   const failure = computed(() => toApiFailure(error.value))
 
+  const dataNotFound = computed(
+    () => isApiError(error.value) && error.value.status === 404,
+  )
+
   /** Drops the last failure, leaving `data` as it was. */
   function clearError() {
     error.value = null
   }
 
-  return { data, isLoading, error, failure, clearError, run }
+  return { data, isLoading, error, dataNotFound, failure, clearError, run }
 }

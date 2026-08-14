@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppAction from '@/components/AppAction.vue'
+import AppAsyncState from '@/components/AppAsyncState.vue'
 import { RouteNames } from '@/router/routeNames'
 
 import EventCard from '../components/EventCard.vue'
@@ -18,30 +19,32 @@ load()
       <AppAction :to="{ name: RouteNames.eventCreate }">Schedule an event</AppAction>
     </div>
 
-    <p v-if="isLoading">Loading events…</p>
+    <AppAsyncState
+      v-slot="{ data: groups }"
+      :data="eventGroups"
+      :loading="isLoading"
+      :failed="!!error"
+      loading-text="Loading events…"
+      error-text="We could not load events just now. Please try again."
+      @retry="load"
+    >
+      <p v-if="groups.length === 0">No events are scheduled yet.</p>
 
-    <template v-else-if="error">
-      <p>We could not load events just now. Please try again.</p>
+      <ul v-else class="events__days" role="list">
+        <li v-for="group in groups" :key="group.key">
+          <h2 class="events__day-heading">{{ group.label }}</h2>
 
-      <AppAction class="events__retry" @click="load">Try again</AppAction>
-    </template>
-
-    <p v-else-if="eventGroups.length === 0">No events are scheduled yet.</p>
-
-    <ul v-else class="events__days" role="list">
-      <li v-for="group in eventGroups" :key="group.key">
-        <h2 class="events__day-heading">{{ group.label }}</h2>
-
-        <ul class="events__list" role="list">
-          <li v-for="event in group.events" :key="event.eventId">
-            <EventCard
-              :event="event"
-              :to="{ name: RouteNames.eventDetail, params: { eventId: event.eventId } }"
-            />
-          </li>
-        </ul>
-      </li>
-    </ul>
+          <ul class="events__list" role="list">
+            <li v-for="event in group.events" :key="event.eventId">
+              <EventCard
+                :event="event"
+                :to="{ name: RouteNames.eventDetail, params: { eventId: event.eventId } }"
+              />
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </AppAsyncState>
   </section>
 </template>
 
@@ -57,10 +60,6 @@ load()
 
 .events__title {
   margin: 0;
-}
-
-.events__retry {
-  margin-top: 16px;
 }
 
 .events__days {

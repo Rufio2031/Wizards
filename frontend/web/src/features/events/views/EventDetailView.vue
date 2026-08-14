@@ -1,31 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import AppAction from '@/components/AppAction.vue'
+import AppAsyncState from '@/components/AppAsyncState.vue'
 import AppBackLink from '@/components/AppBackLink.vue'
 import AppBadge from '@/components/AppBadge.vue'
 import GameTypeSelectionList from '@/features/gameTypes/components/GameTypeSelectionList.vue'
 import { useGameType } from '@/features/gameTypes/composables/useGameType'
 import { RouteNames } from '@/router/routeNames'
-import { isApiError } from '@/services/http/ApiError'
 import { formatSchedule } from '@/utils/dateTime'
 
 import EventQrCode from '../components/EventQrCode.vue'
 import EventRegistrationList from '../components/EventRegistrationList.vue'
 import { useEvent } from '../composables/useEvent'
+import { EVENT_COPY } from '../copy'
 
 const props = defineProps<{
   eventId: string
 }>()
 
-const { event, isLoading, error, load } = useEvent(() => props.eventId)
+const { event, isLoading, error, dataNotFound, load } = useEvent(() => props.eventId)
 
 const { gameType, isLoading: isLoadingGameType } = useGameType(
   () => event.value?.gameType.gameTypeId,
-)
-
-const isNotFound = computed(
-  () => isApiError(error.value) && error.value.status === 404,
 )
 
 const gameTypeSettings = computed(() => gameType.value?.settings ?? [])
@@ -41,23 +37,16 @@ const hasSelections = computed(
       Back to events
     </AppBackLink>
 
-    <p v-if="isLoading">Loading event…</p>
-
-    <template v-else-if="isNotFound">
-      <h1 class="event-detail__title">Event not found</h1>
-
-      <p class="event-detail__message">
-        That event does not exist, or it was removed.
-      </p>
-    </template>
-
-    <template v-else-if="error">
-      <p>We could not load this event just now. Please try again.</p>
-
-      <AppAction class="event-detail__retry" @click="load">Try again</AppAction>
-    </template>
-
-    <template v-else-if="event">
+    <AppAsyncState
+      v-slot="{ data: event }"
+      :data="event"
+      :loading="isLoading"
+      :failed="!!error"
+      :not-found="dataNotFound ? EVENT_COPY.notFound : null"
+      :loading-text="EVENT_COPY.loading"
+      :error-text="EVENT_COPY.error"
+      @retry="load"
+    >
       <h1 class="event-detail__title">{{ event.name }}</h1>
 
       <p class="event-detail__meta">
@@ -89,7 +78,7 @@ const hasSelections = computed(
         :event-id="event.eventId"
         :registration-limit="event.registrationLimit"
       />
-    </template>
+    </AppAsyncState>
   </section>
 </template>
 
@@ -106,14 +95,6 @@ const hasSelections = computed(
 
 .event-detail__title {
   margin: 0;
-}
-
-.event-detail__message {
-  margin-top: 16px;
-}
-
-.event-detail__retry {
-  margin-top: 16px;
 }
 
 .event-detail__meta {

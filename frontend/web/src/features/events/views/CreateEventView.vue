@@ -3,7 +3,9 @@ import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import AppAction from '@/components/AppAction.vue'
+import AppAsyncState from '@/components/AppAsyncState.vue'
 import AppField from '@/components/AppField.vue'
+import AppFormError from '@/components/AppFormError.vue'
 import { useFormFailure } from '@/composables/useFormFailure'
 import GameTypeSettingField from '@/features/gameTypes/components/GameTypeSettingField.vue'
 import { useGameTypes } from '@/features/gameTypes/composables/useGameTypes'
@@ -110,120 +112,136 @@ load()
   <section class="create-event">
     <h1 class="create-event__title">Schedule an event</h1>
 
-    <p v-if="isLoadingGameTypes">Loading games…</p>
+    <AppAsyncState
+      v-slot="{ data: gameTypes }"
+      :data="gameTypes"
+      :loading="isLoadingGameTypes"
+      :failed="!!gameTypesError"
+      loading-text="Loading games…"
+      error-text="We could not load the games just now. Please try again."
+      @retry="load"
+    >
+      <form class="create-event__form" @submit.prevent="submit">
+        <AppFormError :message="formError" />
 
-    <template v-else-if="gameTypesError">
-      <p>We could not load the games just now. Please try again.</p>
+        <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
+          <input
+            :id="id"
+            v-model="name"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+            required
+          />
+        </AppField>
 
-      <AppAction class="create-event__retry" @click="load">Try again</AppAction>
-    </template>
-
-    <form v-else class="create-event__form" @submit.prevent="submit">
-      <p v-if="formError" class="create-event__error" role="alert">{{ formError }}</p>
-
-      <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
-        <input :id="id" v-model="name" :aria-describedby="describedBy" :aria-invalid="invalid" required />
-      </AppField>
-
-      <AppField
-        v-slot="{ id, describedBy, invalid }"
-        label="Description"
-        :error="fieldError('Description')"
-      >
-        <textarea
-          :id="id"
-          v-model="description"
-          rows="3"
-          :aria-describedby="describedBy"
-          :aria-invalid="invalid"
-        />
-      </AppField>
-
-      <AppField
-        v-slot="{ id, describedBy, invalid }"
-        label="Starts"
-        :error="fieldError('StartDateTime')"
-      >
-        <input
-          :id="id"
-          v-model="startDateTime"
-          type="datetime-local"
-          :aria-describedby="describedBy"
-          :aria-invalid="invalid"
-          required
-        />
-      </AppField>
-
-      <AppField v-slot="{ id, describedBy, invalid }" label="Ends" :error="fieldError('EndDateTime')">
-        <input
-          :id="id"
-          v-model="endDateTime"
-          type="datetime-local"
-          :min="startDateTime || undefined"
-          :aria-describedby="describedBy"
-          :aria-invalid="invalid"
-          required
-        />
-      </AppField>
-
-      <AppField
-        v-slot="{ id, describedBy, invalid }"
-        label="Player limit"
-        :hint="`Between ${REGISTRATION_LIMIT.min} and ${REGISTRATION_LIMIT.max} players.`"
-        :error="fieldError('RegistrationLimit')"
-      >
-        <input
-          :id="id"
-          v-model.number="registrationLimit"
-          class="create-event__limit"
-          type="number"
-          inputmode="numeric"
-          :min="REGISTRATION_LIMIT.min"
-          :max="REGISTRATION_LIMIT.max"
-          step="1"
-          :aria-describedby="describedBy"
-          :aria-invalid="invalid"
-          required
-        />
-      </AppField>
-
-      <AppField
-        v-slot="{ id, describedBy, invalid }"
-        label="Game"
-        :error="fieldError('gameType.gameTypeId')"
-      >
-        <select
-          :id="id"
-          v-model="selectedGameTypeId"
-          :aria-describedby="describedBy"
-          :aria-invalid="invalid"
+        <AppField
+          v-slot="{ id, describedBy, invalid }"
+          label="Description"
+          :error="fieldError('Description')"
         >
-          <option v-for="gameType in gameTypes" :key="gameType.gameTypeId" :value="gameType.gameTypeId">
-            {{ gameType.name }}
-          </option>
-        </select>
-      </AppField>
+          <textarea
+            :id="id"
+            v-model="description"
+            rows="3"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          />
+        </AppField>
 
-      <fieldset v-if="selectedGameType?.settings.length" class="create-event__settings">
-        <legend class="create-event__legend">{{ selectedGameType.name }} settings</legend>
+        <AppField
+          v-slot="{ id, describedBy, invalid }"
+          label="Starts"
+          :error="fieldError('StartDateTime')"
+        >
+          <input
+            :id="id"
+            v-model="startDateTime"
+            type="datetime-local"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+            required
+          />
+        </AppField>
 
-        <GameTypeSettingField
-          v-for="setting in selectedGameType.settings"
-          :key="setting.key"
-          v-model="selections[setting.key]"
-          :setting="setting"
-          :error="settingError(setting.key)"
-        />
-      </fieldset>
+        <AppField
+          v-slot="{ id, describedBy, invalid }"
+          label="Ends"
+          :error="fieldError('EndDateTime')"
+        >
+          <input
+            :id="id"
+            v-model="endDateTime"
+            type="datetime-local"
+            :min="startDateTime || undefined"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+            required
+          />
+        </AppField>
 
-      <div class="create-event__actions">
-        <button class="create-event__submit" type="submit" :disabled="isSaving">
-          {{ isSaving ? 'Scheduling…' : 'Schedule event' }}
-        </button>
+        <AppField
+          v-slot="{ id, describedBy, invalid }"
+          label="Player limit"
+          :hint="`Between ${REGISTRATION_LIMIT.min} and ${REGISTRATION_LIMIT.max} players.`"
+          :error="fieldError('RegistrationLimit')"
+        >
+          <input
+            :id="id"
+            v-model.number="registrationLimit"
+            class="create-event__limit"
+            type="number"
+            inputmode="numeric"
+            :min="REGISTRATION_LIMIT.min"
+            :max="REGISTRATION_LIMIT.max"
+            step="1"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+            required
+          />
+        </AppField>
 
-        <AppAction :to="{ name: RouteNames.events }">Cancel</AppAction>
-      </div>
-    </form>
+        <AppField
+          v-slot="{ id, describedBy, invalid }"
+          label="Game"
+          :error="fieldError('gameType.gameTypeId')"
+        >
+          <select
+            :id="id"
+            v-model="selectedGameTypeId"
+            :aria-describedby="describedBy"
+            :aria-invalid="invalid"
+          >
+            <option
+              v-for="gameType in gameTypes"
+              :key="gameType.gameTypeId"
+              :value="gameType.gameTypeId"
+            >
+              {{ gameType.name }}
+            </option>
+          </select>
+        </AppField>
+
+        <fieldset v-if="selectedGameType?.settings.length" class="create-event__settings">
+          <legend class="create-event__legend">{{ selectedGameType.name }} settings</legend>
+
+          <GameTypeSettingField
+            v-for="setting in selectedGameType.settings"
+            :key="setting.key"
+            v-model="selections[setting.key]"
+            :setting="setting"
+            :error="settingError(setting.key)"
+          />
+        </fieldset>
+
+        <div class="create-event__actions">
+          <AppAction type="submit" primary :disabled="isSaving">
+            {{ isSaving ? 'Scheduling…' : 'Schedule event' }}
+          </AppAction>
+
+          <AppAction :to="{ name: RouteNames.events }">Cancel</AppAction>
+        </div>
+      </form>
+    </AppAsyncState>
   </section>
 </template>
 
@@ -260,37 +278,9 @@ load()
   color: var(--color-text-strong);
 }
 
-.create-event__error {
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--color-danger-border);
-  border-radius: 6px;
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-}
-
 .create-event__actions {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.create-event__submit {
-  padding: 8px 16px;
-  border: 1px solid var(--color-accent-border);
-  border-radius: 6px;
-  font: inherit;
-  color: var(--color-bg);
-  background: var(--color-accent);
-  cursor: pointer;
-}
-
-.create-event__submit:disabled {
-  cursor: progress;
-  opacity: 0.7;
-}
-
-.create-event__retry {
-  margin-top: 16px;
 }
 </style>
