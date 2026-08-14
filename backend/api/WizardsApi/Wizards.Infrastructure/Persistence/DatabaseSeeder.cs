@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using Wizards.Domain.Entities;
+using Wizards.Domain.Enums;
 using Wizards.Infrastructure.Extensions;
 
 namespace Wizards.Infrastructure.Persistence;
@@ -30,11 +32,53 @@ namespace Wizards.Infrastructure.Persistence;
 /// <param name="logger">Records what was inserted, so an unexpected insert on a warm database is visible.</param>
 internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSeeder> logger)
 {
-    private static readonly IReadOnlyList<string> SeedGameTypeNames =
+    private static readonly IReadOnlyList<Func<GameType>> SeedGameTypes =
     [
-        "Magic: The Gathering",
-        "Yu-Gi-Oh!",
-        "Pokémon TCG"
+        () => GameType.Create(
+            "Magic: The Gathering",
+            [
+                GameTypeSetting.Create("format", "Format", SettingType.Enum, "Standard",
+                    description: "Which card pool and deck-building rules the event is played under.",
+                    options: ["Standard", "Modern", "Pioneer", "Commander", "Draft"]),
+                GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 40, 250,
+                    "Minimum cards in a player's deck. Commander decks are exactly 100."),
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
+                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "180", 30, 480)
+            ]),
+        () => GameType.Create(
+            "Yu-Gi-Oh!",
+            [
+                GameTypeSetting.Create("format", "Format", SettingType.Enum, "Advanced",
+                    description: "Which ban list and rule set the event is played under.",
+                    options: ["Advanced", "Traditional", "Speed Duel"]),
+                GameTypeSetting.Create("deckSize", "Main deck size", SettingType.Int, "40", 40, 60),
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
+                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "150", 30, 480)
+            ]),
+        () => GameType.Create(
+            "Pokémon TCG",
+            [
+                GameTypeSetting.Create("format", "Format", SettingType.Enum, "Standard",
+                    description: "Which sets are legal at the event.",
+                    options: ["Standard", "Expanded", "Unlimited"]),
+                GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 60, 60,
+                    "Pokémon decks are exactly 60 cards, so this is fixed."),
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
+                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "150", 30, 480)
+            ]),
+
+        // Not a card game, and so exposes no deck size at all. Seeded to keep the claim that a new game
+        // is data rather than code honest, since nothing else here would catch a setting shape that
+        // only works for trading card games.
+        () => GameType.Create(
+            "Catan",
+            [
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "3", 3, 6),
+                GameTypeSetting.Create("victoryPointsToWin", "Victory points to win", SettingType.Int, "10", 8, 15,
+                    "Raise this for a longer game."),
+                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "90", 45, 180),
+                GameTypeSetting.Create("usesExpansion", "Uses an expansion", SettingType.Bool, "false")
+            ])
     ];
 
     private static readonly StringComparer GameTypeNameComparer = StringComparer.OrdinalIgnoreCase;
@@ -49,7 +93,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// </remarks>
     /// <param name="cancellationToken">Cancels the seed before it completes.</param>
     /// <returns>A task that completes once the inserted rows, if any, are durable.</returns>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="Domain.Exceptions.DomainException">
     /// Thrown when a configured seed value violates the invariants of the entity it creates. This is a
     /// defect in the seed data itself and is deliberately allowed to fail the host.
     /// </exception>
@@ -60,37 +104,75 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
 
     private async Task SeedGameTypesAsync(CancellationToken cancellationToken)
     {
-        if (SeedGameTypeNames.Count == 0)
+        if (SeedGameTypes.Count == 0)
         {
             return;
         }
+
+        List<Records.GameType> storedGameTypes = await dbContext.GameTypes
+            .Include(gameType => gameType.Settings)
+            .ToListAsync(cancellationToken);
 
         // The unique index folds case with NOCASE, which covers only ASCII A-Z, where
         // OrdinalIgnoreCase folds the whole of Unicode. The two agree on ASCII names, and on
         // everything else this comparer treats more names as equal than the index does, so the
         // mismatch can only ever skip an insert rather than let a duplicate reach the index.
-        HashSet<string> storedGameTypeNames = await dbContext.GameTypes
-            .AsNoTracking()
-            .Select(gameType => gameType.Name)
-            .ToHashSetAsync(GameTypeNameComparer, cancellationToken);
+        Dictionary<string, Records.GameType> storedByName = new(GameTypeNameComparer);
+
+        foreach (Records.GameType storedGameType in storedGameTypes)
+        {
+            storedByName.TryAdd(storedGameType.Name, storedGameType);
+        }
 
         // Create trims, so deduplicating on the entity's name rather than the raw seed value also
         // collapses entries that differ only by surrounding whitespace.
-        List<Domain.Entities.GameType> missingGameTypes = SeedGameTypeNames
-            .Select(Domain.Entities.GameType.Create)
+        List<GameType> seedGameTypes = SeedGameTypes
+            .Select(createGameType => createGameType())
             .DistinctBy(gameType => gameType.Name, GameTypeNameComparer)
-            .Where(gameType => !storedGameTypeNames.Contains(gameType.Name))
             .ToList();
 
-        if (missingGameTypes.Count == 0)
+        int insertedGameTypes = 0;
+        int insertedSettings = 0;
+
+        foreach (GameType seedGameType in seedGameTypes)
+        {
+            Records.GameType seedRecord = seedGameType.ToRecord();
+
+            if (!storedByName.TryGetValue(seedGameType.Name, out Records.GameType? storedGameType))
+            {
+                dbContext.GameTypes.Add(seedRecord);
+                insertedGameTypes++;
+
+                continue;
+            }
+
+            // A game type stored before it exposed any settings keeps its row and gains them here.
+            // Settings are only ever added to a game type that has none, so a stored setting an
+            // organizer's events already reference is never rewritten by a later seed.
+            if (storedGameType.Settings.Count > 0)
+            {
+                continue;
+            }
+
+            foreach (Records.GameTypeSetting seedSetting in seedRecord.Settings)
+            {
+                seedSetting.GameTypeId = storedGameType.Id;
+                dbContext.GameTypeSettings.Add(seedSetting);
+                insertedSettings++;
+            }
+        }
+
+        if (insertedGameTypes == 0 && insertedSettings == 0)
         {
             return;
         }
 
-        dbContext.GameTypes.AddRange(missingGameTypes.Select(gameType => gameType.ToRecord()));
-
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("Seeded {MissingGameTypeCount} game types.", missingGameTypes.Count);
+        logger.LogInformation(
+            "Seeded {InsertedGameTypeCount} game types and {InsertedSettingCount} settings for game types already stored.",
+            insertedGameTypes,
+            insertedSettings);
     }
+
 }

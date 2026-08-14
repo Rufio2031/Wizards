@@ -24,6 +24,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// <summary>The stored game types the events reference.</summary>
     internal DbSet<Records.GameType> GameTypes => this.Set<Records.GameType>();
 
+    /// <summary>The stored settings the game types expose.</summary>
+    internal DbSet<Records.GameTypeSetting> GameTypeSettings => this.Set<Records.GameTypeSetting>();
+
+    /// <summary>The stored options the choice settings allow.</summary>
+    internal DbSet<Records.GameTypeSettingOption> GameTypeSettingOptions =>
+        this.Set<Records.GameTypeSettingOption>();
+
     /// <inheritdoc />
     /// <remarks>
     /// Applies <see cref="UtcDateTimeConverter"/> to every <see cref="DateTime"/> and nullable
@@ -76,6 +83,52 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasMaxLength(Domain.Entities.GameType.MaxNameLength)
                 .UseCollation(CaseInsensitiveCollation);
             entity.HasIndex(gameType => gameType.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Records.GameTypeSetting>(entity =>
+        {
+            entity.ToTable("game_type_settings");
+            entity.HasKey(setting => setting.Id);
+            entity.Property(setting => setting.Key)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxKeyLength)
+                .UseCollation(CaseInsensitiveCollation);
+            entity.Property(setting => setting.Label)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxLabelLength);
+            entity.Property(setting => setting.Description)
+                .IsRequired(false)
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxDescriptionLength);
+            entity.Property(setting => setting.Type).IsRequired();
+            entity.Property(setting => setting.MinValue).IsRequired(false);
+            entity.Property(setting => setting.MaxValue).IsRequired(false);
+            entity.Property(setting => setting.DefaultValue)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxDefaultValueLength);
+
+            entity.HasIndex(setting => new { setting.GameTypeId, setting.Key }).IsUnique();
+
+            entity.HasOne(setting => setting.GameType)
+                .WithMany(gameType => gameType.Settings)
+                .HasForeignKey(setting => setting.GameTypeId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Records.GameTypeSettingOption>(entity =>
+        {
+            entity.ToTable("game_type_setting_options");
+            entity.HasKey(option => option.Id);
+            entity.Property(option => option.Value)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSettingOption.MaxValueLength)
+                .UseCollation(CaseInsensitiveCollation);
+            entity.HasIndex(option => new { option.GameTypeSettingId, option.Value }).IsUnique();
+            entity.HasOne(option => option.Setting)
+                .WithMany(setting => setting.Options)
+                .HasForeignKey(option => option.GameTypeSettingId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
