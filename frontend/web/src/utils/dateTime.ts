@@ -1,3 +1,9 @@
+/** A calendar day in the browser's time zone: a sortable key and its heading. */
+export interface LocalDay {
+  key: string
+  label: string
+}
+
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',
   month: 'short',
@@ -12,6 +18,13 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
   minute: '2-digit',
 })
 
+const dayHeadingFormatter = new Intl.DateTimeFormat(undefined, {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+})
+
 function toDate(value?: string): Date | null {
   if (!value) {
     return null
@@ -23,6 +36,7 @@ function toDate(value?: string): Date | null {
 }
 
 const UNKNOWN_SCHEDULE_LABEL = 'Date to be announced'
+const UNKNOWN_DAY_KEY = 'unknown-day'
 
 /**
  * Formats a date/time range for display. If the start and end are on the same day,
@@ -56,4 +70,20 @@ function formatDateTimeRange(
 
 export function formatSchedule(startValue?: string, endValue?: string): string {
   return formatDateTimeRange(startValue, endValue) ?? UNKNOWN_SCHEDULE_LABEL
+}
+
+export function toLocalDay(value?: string): LocalDay {
+  const date = toDate(value)
+
+  if (!date) {
+    return { key: UNKNOWN_DAY_KEY, label: UNKNOWN_SCHEDULE_LABEL }
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return {
+    key: `${date.getFullYear()}-${month}-${day}`,
+    label: dayHeadingFormatter.format(date),
+  }
 }

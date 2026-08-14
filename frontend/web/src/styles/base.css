@@ -35,7 +35,8 @@ summary:focus-visible,
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--font-heading);
   font-weight: 500;
   color: var(--color-text-strong);
@@ -58,6 +59,15 @@ h2 {
   margin: 0 0 8px;
   @media (max-width: 1024px) {
     font-size: 20px;
+  }
+}
+h3 {
+  font-size: 20px;
+  line-height: 125%;
+  letter-spacing: -0.2px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 18px;
   }
 }
 p {

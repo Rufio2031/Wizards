@@ -2,27 +2,47 @@ import { computed } from 'vue'
 
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
 import { emptyPage, type Page } from '@/services/http/pagination'
+import { toLocalDay } from '@/utils/dateTime'
+import { groupBy } from '@/utils/grouping'
 
 import { eventsApi } from '../api/eventsApi'
 import type { GameEvent } from '../types/event'
 
-const PAGE_SIZE = 10
+const DEFAULT_PAGE_SIZE = 50
 
-export function useEvents() {
+export interface EventDayGroup {
+  key: string
+  label: string
+  events: GameEvent[]
+}
+
+function groupEventsByDay(events: readonly GameEvent[]): EventDayGroup[] {
+  return groupBy(events, (event) => toLocalDay(event.startDateTime).key).map(
+    ({ items }) => {
+      const day = toLocalDay(items[0].startDateTime)
+
+      return { key: day.key, label: day.label, events: items }
+    },
+  )
+}
+
+export function useEvents(pageSize: number = DEFAULT_PAGE_SIZE) {
   const {
     data,
     isLoading,
     error,
     refresh: load,
   } = useAsyncRequest<Page<GameEvent>>(
-    (options) => eventsApi.list({ skip: 0, take: PAGE_SIZE }, options),
+    (options) => eventsApi.list({ skip: 0, take: pageSize }, options),
     {
-      initialValue: emptyPage<GameEvent>(PAGE_SIZE),
+      initialValue: emptyPage<GameEvent>(pageSize),
       failureMessage: 'Loading events failed.',
     },
   )
 
   const events = computed(() => data.value.items)
+  const eventGroups = computed(() => groupEventsByDay(events.value))
+  const pagination = computed(() => data.value.pagination)
 
-  return { events, isLoading, error, load }
+  return { events, eventGroups, pagination, isLoading, error, load }
 }

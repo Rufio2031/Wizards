@@ -35,10 +35,15 @@ internal sealed class EventsService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        EventPage page = await eventsRepository.GetEventsAsync(
+        EventQuery query = new(
             request.Skip,
             request.Take,
-            cancellationToken);
+            request.SortBy,
+            request.SortDirection,
+            request.StartingOnOrAfterUtc,
+            request.StartingBeforeUtc);
+
+        EventPage page = await eventsRepository.GetEventsAsync(query, cancellationToken);
 
         return new Page<EventResponse>(
             page.Events.Select(@event => new EventResponse(@event)).ToList(),

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// Summary card for a single event, optionally linking to its detail page.
 import type { RouteLocationRaw } from 'vue-router'
 
 import AppBadge from '@/components/AppBadge.vue'
@@ -6,19 +7,24 @@ import { formatSchedule } from '@/utils/dateTime'
 
 import type { GameEvent } from '../types/event'
 
-defineProps<{
-  event: GameEvent
-  to?: RouteLocationRaw
-}>()
+withDefaults(
+  defineProps<{
+    event: GameEvent
+
+    /** Omit to render the card inert. */
+    to?: RouteLocationRaw
+  }>(),
+  { to: undefined },
+)
 </script>
 
 <template>
   <article class="event-card">
-    <h2 class="event-card__name">
+    <h3 class="event-card__name">
       <RouterLink v-if="to" class="event-card__link" :to="to">{{ event.name }}</RouterLink>
 
       <template v-else>{{ event.name }}</template>
-    </h2>
+    </h3>
 
     <p class="event-card__meta">
       {{ formatSchedule(event.startDateTime, event.endDateTime) }}
