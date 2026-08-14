@@ -4,6 +4,8 @@ import { computed } from 'vue'
 import AppAction from '@/components/AppAction.vue'
 import AppBackLink from '@/components/AppBackLink.vue'
 import AppBadge from '@/components/AppBadge.vue'
+import GameTypeSelectionList from '@/features/gameTypes/components/GameTypeSelectionList.vue'
+import { useGameType } from '@/features/gameTypes/composables/useGameType'
 import { RouteNames } from '@/router/routeNames'
 import { isApiError } from '@/services/http/ApiError'
 import { formatSchedule } from '@/utils/dateTime'
@@ -16,8 +18,18 @@ const props = defineProps<{
 
 const { event, isLoading, error, load } = useEvent(() => props.eventId)
 
+const { gameType, isLoading: isLoadingGameType } = useGameType(
+  () => event.value?.gameType.gameTypeId,
+)
+
 const isNotFound = computed(
   () => isApiError(error.value) && error.value.status === 404,
+)
+
+const gameTypeSettings = computed(() => gameType.value?.settings ?? [])
+
+const hasSelections = computed(
+  () => Object.keys(event.value?.selections ?? {}).length > 0,
 )
 </script>
 
@@ -57,6 +69,12 @@ const isNotFound = computed(
       <AppBadge class="event-detail__game-type">
         {{ event.gameType.name }}
       </AppBadge>
+
+      <template v-if="hasSelections && !isLoadingGameType">
+        <h2 class="event-detail__settings-title">Settings</h2>
+
+        <GameTypeSelectionList :settings="gameTypeSettings" :selections="event.selections" />
+      </template>
     </template>
   </section>
 </template>
@@ -97,5 +115,10 @@ const isNotFound = computed(
 
 .event-detail__game-type {
   margin-top: 24px;
+}
+
+.event-detail__settings-title {
+  margin: 24px 0 12px;
+  font-size: 1.125rem;
 }
 </style>
