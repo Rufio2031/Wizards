@@ -22,11 +22,13 @@ function toDate(value?: string): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+const UNKNOWN_SCHEDULE_LABEL = 'Date to be announced'
+
 /**
  * Formats a date/time range for display. If the start and end are on the same day,
  * the end is formatted as just a time. Otherwise, both are formatted as full date/times.
  */
-export function formatDateTimeRange(
+function formatDateTimeRange(
   startValue?: string,
   endValue?: string,
 ): string | null {
@@ -50,4 +52,8 @@ export function formatDateTimeRange(
     : dateTimeFormatter.format(end)
 
   return `${startLabel} to ${endLabel}`
+}
+
+export function formatSchedule(startValue?: string, endValue?: string): string {
+  return formatDateTimeRange(startValue, endValue) ?? UNKNOWN_SCHEDULE_LABEL
 }

@@ -490,6 +490,7 @@ $RECYCLE.BIN/
 
 # Claude Code
 .claude/
+.mcp.json
 docs
 CLAUDE.md
 Assessment.md

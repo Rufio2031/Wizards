@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import AppAction from '@/components/AppAction.vue'
+import { RouteNames } from '@/router/routeNames'
+
 import EventCard from '../components/EventCard.vue'
 import { useEvents } from '../composables/useEvents'
 
@@ -16,16 +19,17 @@ load()
     <template v-else-if="error">
       <p>We could not load events just now. Please try again.</p>
 
-      <button class="events__retry" type="button" @click="load">
-        Try again
-      </button>
+      <AppAction class="events__retry" @click="load">Try again</AppAction>
     </template>
 
     <p v-else-if="events.length === 0">No events are scheduled yet.</p>
 
     <ul v-else class="events__list">
       <li v-for="event in events" :key="event.eventId">
-        <EventCard :event="event" />
+        <EventCard
+          :event="event"
+          :to="{ name: RouteNames.eventDetail, params: { eventId: event.eventId } }"
+        />
       </li>
     </ul>
   </section>
@@ -38,23 +42,12 @@ load()
 
 .events__retry {
   margin-top: 16px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-accent-border);
-  border-radius: 6px;
-  font: inherit;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
-  cursor: pointer;
-}
-
-.events__retry:hover {
-  box-shadow: var(--shadow-sm);
 }
 
 .events__list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   margin: 0;
   padding: 0;
   list-style: none;

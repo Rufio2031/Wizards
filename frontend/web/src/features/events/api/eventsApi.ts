@@ -32,4 +32,17 @@ export const eventsApi = {
 
     return page
   },
+
+  async getById(eventId: string, options?: RequestOptions): Promise<GameEvent> {
+    const event = await httpClient.get<GameEvent>(
+      `${EVENTS_PATH}/${encodeURIComponent(eventId)}`,
+      options,
+    )
+
+    if (!event) {
+      throw new Error('The event endpoint returned no body.')
+    }
+
+    return event
+  },
 }

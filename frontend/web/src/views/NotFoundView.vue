@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppAction from '@/components/AppAction.vue'
 import { RouteNames } from '@/router/routeNames'
 </script>
 
@@ -8,9 +9,9 @@ import { RouteNames } from '@/router/routeNames'
 
     <p>That page does not exist, or it moved.</p>
 
-    <RouterLink class="not-found__link" :to="{ name: RouteNames.home }">
+    <AppAction class="not-found__link" :to="{ name: RouteNames.home }">
       Back to home
-    </RouterLink>
+    </AppAction>
   </section>
 </template>
 
@@ -28,15 +29,5 @@ import { RouteNames } from '@/router/routeNames'
 
 .not-found__link {
   margin-top: 8px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-accent-border);
-  border-radius: 6px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
-  text-decoration: none;
-}
-
-.not-found__link:hover {
-  box-shadow: var(--shadow-sm);
 }
 </style>

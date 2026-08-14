@@ -1,64 +1,80 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
 
-import { formatDateTimeRange } from '@/utils/dateTime'
+import AppBadge from '@/components/AppBadge.vue'
+import { formatSchedule } from '@/utils/dateTime'
 
 import type { GameEvent } from '../types/event'
 
-const UNKNOWN_SCHEDULE_LABEL = 'Date to be announced'
-
-const props = defineProps<{
+defineProps<{
   event: GameEvent
+  to?: RouteLocationRaw
 }>()
-
-const schedule = computed(
-  () =>
-    formatDateTimeRange(props.event.startDateTime, props.event.endDateTime) ??
-    UNKNOWN_SCHEDULE_LABEL,
-)
 </script>
 
 <template>
   <article class="event-card">
-    <h2 class="event-card__name">{{ event.name }}</h2>
+    <h2 class="event-card__name">
+      <RouterLink v-if="to" class="event-card__link" :to="to">{{ event.name }}</RouterLink>
 
-    <p class="event-card__meta">{{ schedule }}</p>
+      <template v-else>{{ event.name }}</template>
+    </h2>
+
+    <p class="event-card__meta">
+      {{ formatSchedule(event.startDateTime, event.endDateTime) }}
+    </p>
 
     <p v-if="event.description" class="event-card__description">
       {{ event.description }}
     </p>
 
-    <p class="event-card__game-type">{{ event.gameType.name }}</p>
+    <AppBadge class="event-card__game-type">
+      {{ event.gameType.name }}
+    </AppBadge>
   </article>
 </template>
 
 <style scoped>
 .event-card {
+  position: relative;
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
 }
 
+.event-card:has(.event-card__link):hover {
+  box-shadow: var(--shadow-sm);
+}
+
 .event-card__name {
-  margin-bottom: 4px;
+  margin: 0;
+}
+
+.event-card__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 
 .event-card__meta {
+  margin-top: 8px;
   font-size: 0.875rem;
 }
 
 .event-card__description {
-  margin-top: 8px;
+  margin-top: 16px;
+  line-height: 1.6;
+  color: var(--color-text-strong);
 }
 
 .event-card__game-type {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 0.875rem;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  margin-top: 16px;
 }
 </style>

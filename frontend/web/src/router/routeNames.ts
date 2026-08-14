@@ -2,6 +2,7 @@
 export const RouteNames = {
   home: 'home',
   events: 'events',
+  eventDetail: 'event-detail',
 } as const
 
 export type RouteName = (typeof RouteNames)[keyof typeof RouteNames]
