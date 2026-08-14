@@ -223,7 +223,10 @@ public class Event
             if (!seenKeys.Add(selection.Key))
             {
                 throw new DomainException(
-                    $"An event cannot carry two values for the '{selection.Key}' setting.");
+                    $"An event cannot carry two values for the '{selection.Key}' setting.")
+                {
+                    Key = selection.Key
+                };
             }
         }
     }

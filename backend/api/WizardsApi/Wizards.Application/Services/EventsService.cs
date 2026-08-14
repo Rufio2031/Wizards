@@ -95,7 +95,10 @@ internal sealed class EventsService(
         }
         catch (DomainException exception)
         {
-            return EventWriteResult.Failure(EventErrors.Invalid(exception.Message));
+            return EventWriteResult.Failure(
+                exception.Key is { } settingKey
+                    ? EventErrors.InvalidSelection(exception.Message, settingKey)
+                    : EventErrors.Invalid(exception.Message));
         }
 
         await eventsRepository.AddEventAsync(@event, cancellationToken);

@@ -37,4 +37,32 @@ public static class EventErrors
 
         return new ApplicationError(ErrorKind.Invalid, string.Empty, message);
     }
+
+    /// <summary>
+    /// Reports that the value chosen for one game type setting breaks a rule the game type states, so
+    /// nothing was written.
+    /// </summary>
+    /// <remarks>
+    /// Attributed to the field the value arrived in, so a caller rendering a form can mark the input
+    /// that has to change rather than the form as a whole.
+    /// </remarks>
+    /// <param name="message">
+    /// The explanation of the rule that was broken, stated by the domain and safe to surface as-is.
+    /// </param>
+    /// <param name="settingKey">The key of the setting the rule is about.</param>
+    /// <returns>The failure to report to the caller.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="message"/> or <paramref name="settingKey"/> is
+    /// <see langword="null"/>, empty, or whitespace.
+    /// </exception>
+    public static ApplicationError InvalidSelection(string message, string settingKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        ArgumentException.ThrowIfNullOrWhiteSpace(settingKey);
+
+        return new ApplicationError(
+            ErrorKind.Invalid,
+            $"gameType.selections.{settingKey}",
+            message);
+    }
 }

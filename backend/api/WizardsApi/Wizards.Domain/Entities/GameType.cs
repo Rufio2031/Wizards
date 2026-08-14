@@ -132,7 +132,10 @@ public class GameType
         {
             if (!chosenValues.TryAdd(selection.Key, selection.Value))
             {
-                throw new DomainException($"The '{selection.Key}' setting was chosen more than once.");
+                throw new DomainException($"The '{selection.Key}' setting was chosen more than once.")
+                {
+                    Key = selection.Key
+                };
             }
         }
 
@@ -150,7 +153,10 @@ public class GameType
             if (!setting.Accepts(value))
             {
                 throw new DomainException(
-                    $"The {this.Name} '{setting.Key}' setting must be {setting.DescribeAllowedValues()}.");
+                    $"The {this.Name} '{setting.Key}' setting must be {setting.DescribeAllowedValues()}.")
+                {
+                    Key = setting.Key
+                };
             }
 
             validated.Add(EventGameTypeSelection.Create(setting.Key, setting.Normalize(value)));
@@ -159,7 +165,12 @@ public class GameType
         // Each setting removed the value chosen for it, so anything still here names no setting.
         if (chosenValues.Count > 0)
         {
-            throw new DomainException($"{this.Name} has no '{chosenValues.Keys.First()}' setting.");
+            string unknownKey = chosenValues.Keys.First();
+
+            throw new DomainException($"{this.Name} has no '{unknownKey}' setting.")
+            {
+                Key = unknownKey
+            };
         }
 
         return validated;
