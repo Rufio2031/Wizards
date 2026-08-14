@@ -44,4 +44,10 @@ internal sealed class Event
 
     /// <summary>Gets or sets the maximum number of players who may register.</summary>
     public int RegistrationLimit { get; set; }
+
+    /// <summary>
+    /// Gets or sets the settings the organizer settled for the event. Only populated on reads that
+    /// load them.
+    /// </summary>
+    public List<EventGameTypeSelection> Selections { get; set; } = [];
 }

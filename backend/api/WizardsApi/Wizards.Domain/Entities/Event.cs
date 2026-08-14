@@ -46,8 +46,16 @@ public class Event
     /// <summary>The game type of the event.</summary>
     public GameType GameType { get; private set; } = null!;
 
+    /// <summary>
+    /// The settings the organizer settled for this event, one per setting the game type exposed when
+    /// the event was created.
+    /// </summary>
+    public IReadOnlyList<EventGameTypeSelection> Selections => this.selections;
+
     /// <summary>The registration limit for the event.</summary>
     public int RegistrationLimit { get; private set; }
+
+    private List<EventGameTypeSelection> selections = [];
 
     private Event() { }
 
@@ -75,21 +83,29 @@ public class Event
     /// Thrown when <paramref name="gameType"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when either instant is not <see cref="DateTimeKind.Utc"/>.
+    /// Thrown when either instant is not <see cref="DateTimeKind.Utc"/>, or when
+    /// <paramref name="selections"/> contains a null entry.
     /// </exception>
+    /// <param name="selections">
+    /// The settings settled for the event, stored as given. Whether they satisfy the game type is a
+    /// rule the game type states, so the caller resolves it and calls
+    /// <see cref="GameType.Validate"/> before reaching here.
+    /// </param>
     /// <exception cref="DomainException">
     /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
     /// when <paramref name="description"/> is too long, when <paramref name="startDateTime"/> is in the
-    /// past, or when <paramref name="endDateTime"/> does not fall after
-    /// <paramref name="startDateTime"/>. The message states the rule that was broken and is safe to
-    /// report to the originator of the request.
+    /// past, when <paramref name="endDateTime"/> does not fall after
+    /// <paramref name="startDateTime"/>, or when <paramref name="selections"/> carry two values for the
+    /// same setting. The message states the rule that was broken and is safe to report to the
+    /// originator of the request.
     /// </exception>
     public static Event Create(
         string name,
         string? description,
         GameType gameType,
         DateTime startDateTime,
-        DateTime? endDateTime = null)
+        DateTime? endDateTime = null,
+        IEnumerable<EventGameTypeSelection>? selections = null)
     {
         ArgumentNullException.ThrowIfNull(gameType);
 
@@ -97,6 +113,10 @@ public class Event
         description = ValidateAndNormalizeDescription(description);
 
         ValidateSchedule(startDateTime, endDateTime);
+
+        List<EventGameTypeSelection> eventSelections = selections?.ToList() ?? [];
+
+        ValidateSelections(eventSelections);
 
         return new()
         {
@@ -106,7 +126,8 @@ public class Event
             GameType = gameType,
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
-            RegistrationLimit = MaxRegistrationLimit
+            RegistrationLimit = MaxRegistrationLimit,
+            selections = eventSelections
         };
     }
 
@@ -129,6 +150,7 @@ public class Event
     /// </param>
     /// <param name="gameType">The game type the stored event references, already rehydrated.</param>
     /// <param name="registrationLimit">The stored registration limit of the event.</param>
+    /// <param name="selections">The stored settings of the event, already rehydrated.</param>
     /// <returns>The rehydrated event.</returns>
     public static Event Reconstitute(
         int id,
@@ -138,7 +160,8 @@ public class Event
         DateTime startDateTime,
         DateTime? endDateTime,
         GameType gameType,
-        int registrationLimit) =>
+        int registrationLimit,
+        IEnumerable<EventGameTypeSelection>? selections = null) =>
         new()
         {
             Id = id,
@@ -148,7 +171,8 @@ public class Event
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
             GameType = gameType,
-            RegistrationLimit = registrationLimit
+            RegistrationLimit = registrationLimit,
+            selections = selections?.ToList() ?? []
         };
 
     private static string ValidateAndNormalizeName(string name)
@@ -183,6 +207,25 @@ public class Event
         }
 
         return description;
+    }
+
+    private static void ValidateSelections(List<EventGameTypeSelection> selections)
+    {
+        if (selections.Any(selection => selection is null))
+        {
+            throw new ArgumentException("A selection cannot be null.", nameof(selections));
+        }
+
+        HashSet<string> seenKeys = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (EventGameTypeSelection selection in selections)
+        {
+            if (!seenKeys.Add(selection.Key))
+            {
+                throw new DomainException(
+                    $"An event cannot carry two values for the '{selection.Key}' setting.");
+            }
+        }
     }
 
     private static void ValidateSchedule(DateTime startDateTime, DateTime? endDateTime)

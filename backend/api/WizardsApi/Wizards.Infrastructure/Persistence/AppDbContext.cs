@@ -27,6 +27,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// <summary>The stored settings the game types expose.</summary>
     internal DbSet<Records.GameTypeSetting> GameTypeSettings => this.Set<Records.GameTypeSetting>();
 
+    /// <summary>The stored settings the organizers settled for their events.</summary>
+    internal DbSet<Records.EventGameTypeSelection> EventGameTypeSelections =>
+        this.Set<Records.EventGameTypeSelection>();
+
     /// <summary>The stored options the choice settings allow.</summary>
     internal DbSet<Records.GameTypeSettingOption> GameTypeSettingOptions =>
         this.Set<Records.GameTypeSettingOption>();
@@ -72,6 +76,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<Records.EventGameTypeSelection>(entity =>
+        {
+            entity.ToTable("event_game_type_selections");
+            entity.HasKey(selection => selection.Id);
+            entity.Property(selection => selection.Key)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxKeyLength)
+                .UseCollation(CaseInsensitiveCollation);
+            entity.Property(selection => selection.Value)
+                .IsRequired()
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxValueLength);
+            entity.HasIndex(selection => new { selection.EventId, selection.Key }).IsUnique();
+            entity.HasOne(selection => selection.Event)
+                .WithMany(storedEvent => storedEvent.Selections)
+                .HasForeignKey(selection => selection.EventId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<Records.GameType>(entity =>
         {
             entity.ToTable("game_types");
@@ -104,7 +127,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(setting => setting.MaxValue).IsRequired(false);
             entity.Property(setting => setting.DefaultValue)
                 .IsRequired()
-                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxDefaultValueLength);
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxValueLength);
 
             entity.HasIndex(setting => new { setting.GameTypeId, setting.Key }).IsUnique();
 
@@ -121,7 +144,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasKey(option => option.Id);
             entity.Property(option => option.Value)
                 .IsRequired()
-                .HasMaxLength(Domain.Entities.GameTypeSettingOption.MaxValueLength)
+                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxValueLength)
                 .UseCollation(CaseInsensitiveCollation);
             entity.HasIndex(option => new { option.GameTypeSettingId, option.Value }).IsUnique();
             entity.HasOne(option => option.Setting)

@@ -95,6 +95,76 @@ public class GameType
             settings = settings?.ToList() ?? []
         };
 
+    /// <summary>
+    /// Checks the settings an organizer chose against what this game type exposes, filling in the ones
+    /// they left alone.
+    /// </summary>
+    /// <remarks>
+    /// Every setting this game type exposes appears in the result, whether it was chosen or defaulted,
+    /// and each value comes back in the form its setting stores it in.
+    /// </remarks>
+    /// <param name="selections">
+    /// The settings the organizer chose, in any order, or <see langword="null"/> to accept every
+    /// default.
+    /// </param>
+    /// <returns>
+    /// One selection per setting this game type exposes, in the same order as <see cref="Settings"/>.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="selections"/> contains a null entry.
+    /// </exception>
+    /// <exception cref="DomainException">
+    /// Thrown when a setting is chosen more than once, when a choice names a setting this game type
+    /// does not expose, or when a chosen value is not one its setting allows.
+    /// </exception>
+    public IReadOnlyList<EventGameTypeSelection> Validate(IEnumerable<EventGameTypeSelection>? selections)
+    {
+        List<EventGameTypeSelection> chosen = selections?.ToList() ?? [];
+
+        if (chosen.Any(selection => selection is null))
+        {
+            throw new ArgumentException("A chosen setting cannot be null.", nameof(selections));
+        }
+
+        Dictionary<string, string> chosenValues = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (EventGameTypeSelection selection in chosen)
+        {
+            if (!chosenValues.TryAdd(selection.Key, selection.Value))
+            {
+                throw new DomainException($"The '{selection.Key}' setting was chosen more than once.");
+            }
+        }
+
+        List<EventGameTypeSelection> validated = new(this.settings.Count);
+
+        foreach (GameTypeSetting setting in this.settings)
+        {
+            if (!chosenValues.Remove(setting.Key, out string? value))
+            {
+                validated.Add(EventGameTypeSelection.Create(setting.Key, setting.DefaultValue));
+
+                continue;
+            }
+
+            if (!setting.Accepts(value))
+            {
+                throw new DomainException(
+                    $"The {this.Name} '{setting.Key}' setting must be {setting.DescribeAllowedValues()}.");
+            }
+
+            validated.Add(EventGameTypeSelection.Create(setting.Key, setting.Normalize(value)));
+        }
+
+        // Each setting removed the value chosen for it, so anything still here names no setting.
+        if (chosenValues.Count > 0)
+        {
+            throw new DomainException($"{this.Name} has no '{chosenValues.Keys.First()}' setting.");
+        }
+
+        return validated;
+    }
+
     private static string ValidateAndNormalizeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -121,9 +191,15 @@ public class GameType
 
         // Selections name the setting they were chosen for by key, so two settings sharing a key would
         // leave which of them a chosen value answered undecidable.
-        if (settings.DistinctBy(setting => setting.Key, StringComparer.OrdinalIgnoreCase).Count() != settings.Count)
+        HashSet<string> seenKeys = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (GameTypeSetting setting in settings)
         {
-            throw new DomainException($"Game type '{name}' cannot expose the same setting key twice.");
+            if (!seenKeys.Add(setting.Key))
+            {
+                throw new DomainException(
+                    $"Game type '{name}' cannot expose the '{setting.Key}' setting twice.");
+            }
         }
     }
 }

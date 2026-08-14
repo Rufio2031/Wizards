@@ -76,12 +76,17 @@ internal sealed class EventsService(
 
         try
         {
+            IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(
+                request.GameType.Selections?.Select(
+                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+
             @event = Event.Create(
                 request.Name,
                 request.Description,
                 gameType,
                 request.StartDateTime,
-                request.EndDateTime);
+                request.EndDateTime,
+                selections);
         }
         catch (DomainException exception)
         {

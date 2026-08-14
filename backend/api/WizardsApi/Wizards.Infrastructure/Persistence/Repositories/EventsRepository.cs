@@ -27,6 +27,7 @@ internal sealed class EventsRepository(AppDbContext dbContext) : IEventsReposito
         Records.Event? eventRecord = await dbContext.Events
             .AsNoTracking()
             .Include(storedEvent => storedEvent.GameType)
+            .Include(storedEvent => storedEvent.Selections)
             .FirstOrDefaultAsync(storedEvent => storedEvent.PublicId == publicId, cancellationToken);
 
         return eventRecord?.ToEntity();
@@ -48,6 +49,7 @@ internal sealed class EventsRepository(AppDbContext dbContext) : IEventsReposito
 
         List<Records.Event> eventRecords = await query
             .Include(storedEvent => storedEvent.GameType)
+            .Include(storedEvent => storedEvent.Selections)
             .OrderBy(storedEvent => storedEvent.StartDateTime)
             .Skip(skip)
             .Take(take)

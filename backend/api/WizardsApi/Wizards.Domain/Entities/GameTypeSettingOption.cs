@@ -12,9 +12,6 @@ namespace Wizards.Domain.Entities;
 /// </remarks>
 public class GameTypeSettingOption
 {
-    /// <summary>The maximum length of an option's value.</summary>
-    public const int MaxValueLength = 100;
-
     /// <summary>Gets the primary key of the option.</summary>
     public int Id { get; private set; }
 
@@ -33,7 +30,7 @@ public class GameTypeSettingOption
     /// <returns>The new option, carrying no primary key.</returns>
     /// <exception cref="DomainException">
     /// Thrown when <paramref name="value"/> is <see langword="null"/>, empty, whitespace, or longer
-    /// than <see cref="MaxValueLength"/> characters once trimmed.
+    /// than <see cref="GameTypeSetting.MaxValueLength"/> characters once trimmed.
     /// </exception>
     public static GameTypeSettingOption Create(string value)
     {
@@ -71,10 +68,10 @@ public class GameTypeSettingOption
 
         value = value.Trim();
 
-        if (value.Length > MaxValueLength)
+        if (value.Length > GameTypeSetting.MaxValueLength)
         {
             throw new DomainException(
-                $"A game type setting option value cannot exceed {MaxValueLength} characters.");
+                $"A game type setting option value cannot exceed {GameTypeSetting.MaxValueLength} characters.");
         }
 
         return value;

@@ -31,8 +31,12 @@ public class GameTypeSetting
     /// <summary>The maximum length of a setting's description.</summary>
     public const int MaxDescriptionLength = 500;
 
-    /// <summary>The maximum length of a setting's default value.</summary>
-    public const int MaxDefaultValueLength = 100;
+    /// <summary>
+    /// The maximum length of any value a setting holds: its default, each of its options, and a value
+    /// chosen for it on an event. One cap, because a default and an option are both copied onto an
+    /// event as the chosen value.
+    /// </summary>
+    public const int MaxValueLength = 100;
 
     private List<GameTypeSettingOption> options = [];
 
@@ -324,10 +328,10 @@ public class GameTypeSetting
 
         defaultValue = defaultValue.Trim();
 
-        if (defaultValue.Length > MaxDefaultValueLength)
+        if (defaultValue.Length > MaxValueLength)
         {
             throw new DomainException(
-                $"The default value of the '{key}' setting cannot exceed {MaxDefaultValueLength} characters.");
+                $"The default value of the '{key}' setting cannot exceed {MaxValueLength} characters.");
         }
 
         return defaultValue;
