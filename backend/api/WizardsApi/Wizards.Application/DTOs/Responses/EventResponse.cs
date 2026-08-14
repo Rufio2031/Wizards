@@ -14,7 +14,7 @@ namespace Wizards.Application.DTOs.Responses;
 /// The instant the event begins, always in UTC and always serialized with a trailing <c>Z</c>.
 /// </param>
 /// <param name="EndDateTime">
-/// The instant the event ends, in UTC, or <see langword="null"/> when the event has no scheduled end.
+/// The instant the event ends, always in UTC and always serialized with a trailing <c>Z</c>.
 /// </param>
 /// <param name="GameType">The type of game the event is for.</param>
 /// <param name="Selections">
@@ -27,7 +27,7 @@ public record EventResponse(
     string Name,
     string? Description,
     DateTime StartDateTime,
-    DateTime? EndDateTime,
+    DateTime EndDateTime,
     GameTypeResponse GameType,
     IReadOnlyDictionary<string, string> Selections)
 {

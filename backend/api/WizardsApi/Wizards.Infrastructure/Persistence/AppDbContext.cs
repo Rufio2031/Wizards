@@ -67,7 +67,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .IsRequired(false)
                 .HasMaxLength(Domain.Entities.Event.MaxDescriptionLength);
             entity.Property(storedEvent => storedEvent.StartDateTime).IsRequired();
-            entity.Property(storedEvent => storedEvent.EndDateTime).IsRequired(false);
+            entity.Property(storedEvent => storedEvent.EndDateTime).IsRequired();
             entity.Property(storedEvent => storedEvent.RegistrationLimit).IsRequired();
             entity.HasOne(storedEvent => storedEvent.GameType)
                 .WithMany()

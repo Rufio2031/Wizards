@@ -23,7 +23,7 @@ namespace Wizards.Application.DTOs.Requests;
 /// </param>
 /// <param name="EndDateTime">
 /// The instant the event ends, which must fall after <paramref name="StartDateTime"/>, written and
-/// read the same way. Omit or pass <see langword="null"/> to create an event with no scheduled end.
+/// read the same way. Required, so every event carries an end a calendar invite can state.
 /// </param>
 /// <param name="GameType">
 /// The game the event is played with, and the settings chosen for it. Required, and rejected when no
@@ -40,7 +40,8 @@ public record CreateEventRequest(
     [Required]
     DateTime StartDateTime,
 
-    DateTime? EndDateTime,
+    [Required]
+    DateTime EndDateTime,
 
     [Required]
     EventGameTypeRequest GameType);

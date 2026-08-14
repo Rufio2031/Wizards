@@ -37,11 +37,10 @@ public class Event
     public DateTime StartDateTime { get; private set; }
 
     /// <summary>
-    /// The instant the event ends, in UTC, or <see langword="null"/> when the event has no scheduled
-    /// end. When a value is present it always carries <see cref="DateTimeKind.Utc"/> and falls strictly
-    /// after <see cref="StartDateTime"/>.
+    /// The instant the event ends, in UTC. Always carries <see cref="DateTimeKind.Utc"/> and falls
+    /// strictly after <see cref="StartDateTime"/>.
     /// </summary>
-    public DateTime? EndDateTime { get; private set; }
+    public DateTime EndDateTime { get; private set; }
 
     /// <summary>The game type of the event.</summary>
     public GameType GameType { get; private set; } = null!;
@@ -76,7 +75,7 @@ public class Event
     /// </param>
     /// <param name="endDateTime">
     /// The instant the event ends, which must be UTC and fall strictly after
-    /// <paramref name="startDateTime"/>, or <see langword="null"/> for an event with no scheduled end.
+    /// <paramref name="startDateTime"/>.
     /// </param>
     /// <returns>The new event, carrying its assigned identifier and no primary key.</returns>
     /// <exception cref="ArgumentNullException">
@@ -104,7 +103,7 @@ public class Event
         string? description,
         GameType gameType,
         DateTime startDateTime,
-        DateTime? endDateTime = null,
+        DateTime endDateTime,
         IEnumerable<EventGameTypeSelection>? selections = null)
     {
         ArgumentNullException.ThrowIfNull(gameType);
@@ -146,7 +145,7 @@ public class Event
     /// The stored instant the event begins, which the caller must already have marked as UTC.
     /// </param>
     /// <param name="endDateTime">
-    /// The stored instant the event ends, if any, which the caller must already have marked as UTC.
+    /// The stored instant the event ends, which the caller must already have marked as UTC.
     /// </param>
     /// <param name="gameType">The game type the stored event references, already rehydrated.</param>
     /// <param name="registrationLimit">The stored registration limit of the event.</param>
@@ -158,7 +157,7 @@ public class Event
         string name,
         string? description,
         DateTime startDateTime,
-        DateTime? endDateTime,
+        DateTime endDateTime,
         GameType gameType,
         int registrationLimit,
         IEnumerable<EventGameTypeSelection>? selections = null) =>
@@ -231,7 +230,7 @@ public class Event
         }
     }
 
-    private static void ValidateSchedule(DateTime startDateTime, DateTime? endDateTime)
+    private static void ValidateSchedule(DateTime startDateTime, DateTime endDateTime)
     {
         // Comparing instants only means anything once both are known to be UTC, so the kind is checked
         // before any comparison is.
@@ -240,7 +239,7 @@ public class Event
             throw new ArgumentException("Event start date and time must be UTC.", nameof(startDateTime));
         }
 
-        if (endDateTime.HasValue && endDateTime.Value.Kind != DateTimeKind.Utc)
+        if (endDateTime.Kind != DateTimeKind.Utc)
         {
             throw new ArgumentException("Event end date and time must be UTC.", nameof(endDateTime));
         }
@@ -250,7 +249,7 @@ public class Event
             throw new DomainException("Event start date and time cannot be in the past.");
         }
 
-        if (endDateTime.HasValue && startDateTime >= endDateTime.Value)
+        if (startDateTime >= endDateTime)
         {
             throw new DomainException("Event start date and time must be before the end date and time.");
         }
