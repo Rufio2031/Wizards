@@ -98,7 +98,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             entity.Property(registration => registration.Name)
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(Domain.Entities.EventRegistration.MaxNameLength);
             entity.HasIndex(registration => registration.EventId);
             entity.HasOne(registration => registration.Event)
                 .WithMany()

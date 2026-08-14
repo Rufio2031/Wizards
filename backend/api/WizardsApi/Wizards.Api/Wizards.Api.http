@@ -108,4 +108,36 @@ Accept: application/json
   "gameType": { "name": "Warhammer 40,000" }
 }
 
+### Register a player for an event (expects 200 with no body)
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace"
+}
+
+### Register with an empty name (expects 400 with ValidationProblemDetails keyed by Name)
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": ""
+}
+
+### Register for an event that does not exist (expects 404 with ProblemDetails)
+POST {{baseUrl}}/events/00000000-0000-0000-0000-000000000001/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace"
+}
+
+### Register for a full event
+# Send the first request thirty times, which is the limit every event is created
+# with, and the thirty-first responds 409 with { "errors": { "": [ "This event is
+# full." ] } }.
+
 ###

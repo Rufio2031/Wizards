@@ -171,6 +171,29 @@ public class Event
             selections = selections?.ToList() ?? []
         };
 
+    /// <summary>
+    /// Reports whether the event has taken every registration it accepts.
+    /// </summary>
+    /// <remarks>
+    /// The count is supplied rather than held, because an event is read without its registrations and
+    /// the number of them is only ever true for the instant it was counted. A caller acting on the
+    /// answer races anything registering alongside it, so the store enforces the same limit as the
+    /// last word.
+    /// </remarks>
+    /// <param name="registrationCount">How many players are registered for the event.</param>
+    /// <returns>
+    /// <see langword="true"/> when the event will accept no further registrations.
+    /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="registrationCount"/> is negative.
+    /// </exception>
+    public bool IsFull(int registrationCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(registrationCount);
+
+        return registrationCount >= this.RegistrationLimit;
+    }
+
     private static string ValidateAndNormalizeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

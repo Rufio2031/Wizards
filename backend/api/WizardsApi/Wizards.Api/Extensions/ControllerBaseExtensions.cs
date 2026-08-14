@@ -35,10 +35,20 @@ public static class ControllerBaseExtensions
         return error.Kind switch
         {
             ErrorKind.NotFound => controller.NotFound(),
-            ErrorKind.Invalid => controller.ValidationProblem(new ValidationProblemDetails(
-                new Dictionary<string, string[]> { [error.Key] = [error.Message] })),
-            ErrorKind.Conflict => controller.Conflict(),
+            ErrorKind.Invalid => controller.ValidationProblem(ToProblemDetails(error)),
+            ErrorKind.Conflict => controller.Conflict(ToProblemDetails(
+                error,
+                StatusCodes.Status409Conflict)),
             _ => throw new UnreachableException($"Unhandled error kind: {error.Kind}.")
+        };
+    }
+
+    private static ValidationProblemDetails ToProblemDetails(ApplicationError error, int? status = null)
+    {
+        return new ValidationProblemDetails(
+            new Dictionary<string, string[]> { [error.Key] = [error.Message] })
+        {
+            Status = status
         };
     }
 }

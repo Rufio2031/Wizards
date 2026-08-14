@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IEventsService, EventsService>();
         services.AddScoped<IGameTypesService, GameTypesService>();
+        services.AddScoped<IRegistrationsService, RegistrationsService>();
 
         return services;
     }
