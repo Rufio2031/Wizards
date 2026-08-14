@@ -31,6 +31,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     internal DbSet<Records.EventGameTypeSelection> EventGameTypeSelections =>
         this.Set<Records.EventGameTypeSelection>();
 
+    /// <summary>The stored registrations players hold against the events.</summary>
+    internal DbSet<Records.EventRegistration> EventRegistrations =>
+        this.Set<Records.EventRegistration>();
+
     /// <summary>The stored options the choice settings allow.</summary>
     internal DbSet<Records.GameTypeSettingOption> GameTypeSettingOptions =>
         this.Set<Records.GameTypeSettingOption>();
@@ -91,6 +95,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasOne(selection => selection.Event)
                 .WithMany(storedEvent => storedEvent.Selections)
                 .HasForeignKey(selection => selection.EventId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Records.EventRegistration>(entity =>
+        {
+            // A trigger that aborts leaves the RETURNING clause EF would otherwise
+            // use unable to report the failure, so this table saves without it.
+            entity.ToTable("event_registrations", table => table.UseSqlReturningClause(false));
+
+            entity.HasKey(registration => registration.Id);
+
+            entity.Property(registration => registration.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.HasIndex(registration => registration.EventId);
+            entity.HasOne(registration => registration.Event)
+                .WithMany()
+                .HasForeignKey(registration => registration.EventId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
         });
