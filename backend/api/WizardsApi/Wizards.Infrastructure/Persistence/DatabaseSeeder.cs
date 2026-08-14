@@ -92,6 +92,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
         new SampleEvent(
             "Friday Night Magic",
             "Weekly in-store tournament. Doors open thirty minutes before the first round.",
+            "The Wizard's Table, 412 Main Street",
             "Magic: The Gathering",
             TimeSpan.FromDays(2),
             TimeSpan.FromHours(4),
@@ -102,6 +103,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
         new SampleEvent(
             "Commander Pod Night",
             "One pod, four seats, no substitutions.",
+            "The Wizard's Table, 412 Main Street",
             "Magic: The Gathering",
             TimeSpan.FromDays(5),
             TimeSpan.FromHours(3),
@@ -112,6 +114,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
         new SampleEvent(
             "Catan Saturday",
             null,
+            "The Wizard's Table, back room",
             "Catan",
             TimeSpan.FromDays(6),
             TimeSpan.FromHours(4),
@@ -255,6 +258,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             Event @event = Event.Create(
                 sampleEvent.Name,
                 sampleEvent.Description,
+                sampleEvent.Location,
                 gameType,
                 seededAt + sampleEvent.StartsIn,
                 seededAt + sampleEvent.StartsIn + sampleEvent.Runs,
@@ -336,6 +340,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     private sealed record SampleEvent(
         string Name,
         string? Description,
+        string Location,
         string GameTypeName,
         TimeSpan StartsIn,
         TimeSpan Runs,
