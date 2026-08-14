@@ -21,7 +21,7 @@ builder.Services
     });
 builder.Services.AddOpenApi();
 
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();

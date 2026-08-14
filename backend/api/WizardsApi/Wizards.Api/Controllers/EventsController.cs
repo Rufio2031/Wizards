@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,9 @@ namespace Wizards.Api.Controllers;
 [ApiController]
 [Route("events")]
 [Produces("application/json")]
-public class EventsController(IEventsService eventsService) : ControllerBase
+public class EventsController(
+    IEventsService eventsService,
+    ICalendarInviteService calendarInviteService) : ControllerBase
 {
     /// <summary>
     /// Retrieves a page of events, ordered as asked and optionally narrowed to a date range.
@@ -82,6 +85,52 @@ public class EventsController(IEventsService eventsService) : ControllerBase
         }
 
         return this.Ok(@event);
+    }
+
+    /// <summary>
+    /// Downloads an event as a calendar invite.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Nothing is stored. The invite is built from the event each time one is asked for, so it always
+    /// states the event as it is now, and there is no file anywhere to fall out of date.
+    /// </para>
+    /// </remarks>
+    /// <param name="eventId">The identifier of the event to describe.</param>
+    /// <param name="cancellationToken">Cancels the request before it completes.</param>
+    /// <returns>
+    /// The invite, offered as a download named after the event, which clients such as Google Calendar
+    /// and Outlook import directly.
+    /// </returns>
+    /// <response code="200">The invite was built.</response>
+    /// <response code="404">
+    /// No event carries the supplied identifier. An empty identifier is never assigned to an event and
+    /// is reported the same way.
+    /// </response>
+    [HttpGet("{eventId:guid}/calendar.ics", Name = nameof(GetEventCalendarInvite))]
+    [Produces(CalendarInvite.MediaType)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetEventCalendarInvite(Guid eventId, CancellationToken cancellationToken)
+    {
+        if (eventId == Guid.Empty)
+        {
+            return this.NotFound();
+        }
+
+        CalendarInvite? invite = await calendarInviteService.GetInvite(eventId, cancellationToken);
+
+        if (invite is null)
+        {
+            return this.NotFound();
+        }
+
+        // Naming the download here is what makes the response an attachment, so a browser saves the
+        // invite and hands it to a calendar rather than rendering it as text.
+        return this.File(
+            Encoding.UTF8.GetBytes(invite.Content),
+            invite.ContentType,
+            invite.FileName);
     }
 
     /// <summary>

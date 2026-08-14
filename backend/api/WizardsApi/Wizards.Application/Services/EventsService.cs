@@ -74,6 +74,7 @@ internal sealed class EventsService(
             @event = Event.Create(
                 request.Name,
                 request.Description,
+                request.Location,
                 gameType,
                 request.StartDateTime,
                 request.EndDateTime,

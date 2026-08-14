@@ -10,6 +10,9 @@ public class Event
     /// <summary>The maximum length of an event's description.</summary>
     public const int MaxDescriptionLength = 2000;
 
+    /// <summary>The maximum length of an event's location.</summary>
+    public const int MaxLocationLength = 200;
+
     /// <summary>The most players an event may accept.</summary>
     public const int MaxRegistrationLimit = 30;
 
@@ -27,6 +30,12 @@ public class Event
     /// supplied one.
     /// </summary>
     public string? Description { get; private set; }
+
+    /// <summary>
+    /// Where the event is held, as the organizer wrote it. Stated on the calendar invite, so an event
+    /// always carries one.
+    /// </summary>
+    public string Location { get; private set; } = string.Empty;
 
     /// <summary>
     /// The instant the event begins, in UTC. Always carries <see cref="DateTimeKind.Utc"/>.
@@ -65,6 +74,9 @@ public class Event
     /// The long-form description of the event, trimmed when supplied, or <see langword="null"/> for an
     /// event without one.
     /// </param>
+    /// <param name="location">
+    /// Where the event is held. Required, and trimmed before the length is checked.
+    /// </param>
     /// <param name="gameType">The game the event is played with.</param>
     /// <param name="startDateTime">
     /// The instant the event begins, which must be UTC and must not already have passed.
@@ -93,8 +105,9 @@ public class Event
     /// </param>
     /// <exception cref="DomainException">
     /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
-    /// when <paramref name="description"/> is too long, when <paramref name="startDateTime"/> is in the
-    /// past, when <paramref name="endDateTime"/> does not fall after
+    /// when <paramref name="description"/> is too long, when <paramref name="location"/> is
+    /// <see langword="null"/>, empty, whitespace, or too long, when <paramref name="startDateTime"/> is
+    /// in the past, when <paramref name="endDateTime"/> does not fall after
     /// <paramref name="startDateTime"/>, when <paramref name="registrationLimit"/> falls outside the
     /// allowed range, or when <paramref name="selections"/> carry two values for the same setting. The
     /// message states the rule that was broken and is safe to report to the originator of the request.
@@ -102,6 +115,7 @@ public class Event
     public static Event Create(
         string name,
         string? description,
+        string location,
         GameType gameType,
         DateTime startDateTime,
         DateTime endDateTime,
@@ -112,6 +126,7 @@ public class Event
 
         name = ValidateAndNormalizeName(name);
         description = ValidateAndNormalizeDescription(description);
+        location = ValidateAndNormalizeLocation(location);
 
         ValidateSchedule(startDateTime, endDateTime);
 
@@ -128,6 +143,7 @@ public class Event
             PublicId = Guid.CreateVersion7(),
             Name = name,
             Description = description,
+            Location = location,
             GameType = gameType,
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
@@ -147,6 +163,7 @@ public class Event
     /// <param name="publicId">The stored identifier of the event.</param>
     /// <param name="name">The stored display name of the event.</param>
     /// <param name="description">The stored description of the event, if any.</param>
+    /// <param name="location">The stored location of the event.</param>
     /// <param name="startDateTime">
     /// The stored instant the event begins, which the caller must already have marked as UTC.
     /// </param>
@@ -162,6 +179,7 @@ public class Event
         Guid publicId,
         string name,
         string? description,
+        string location,
         DateTime startDateTime,
         DateTime endDateTime,
         GameType gameType,
@@ -173,6 +191,7 @@ public class Event
             PublicId = publicId,
             Name = name,
             Description = description,
+            Location = location,
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
             GameType = gameType,
@@ -235,6 +254,23 @@ public class Event
         }
 
         return description;
+    }
+
+    private static string ValidateAndNormalizeLocation(string location)
+    {
+        if (string.IsNullOrWhiteSpace(location))
+        {
+            throw new DomainException("Event location is required.");
+        }
+
+        location = location.Trim();
+
+        if (location.Length > MaxLocationLength)
+        {
+            throw new DomainException($"Event location cannot exceed {MaxLocationLength} characters.");
+        }
+
+        return location;
     }
 
     private static void ValidateRegistrationLimit(int registrationLimit)

@@ -17,6 +17,9 @@ internal sealed class Event
     /// </summary>
     public string? Description { get; set; }
 
+    /// <summary>Gets or sets where the event is held.</summary>
+    public required string Location { get; set; }
+
     /// <summary>Gets or sets the foreign key of the game the event is played with.</summary>
     public int GameTypeId { get; set; }
 
