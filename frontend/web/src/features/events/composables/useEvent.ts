@@ -10,7 +10,7 @@ export function useEvent(eventId: MaybeRefOrGetter<string>) {
     data: event,
     isLoading,
     error,
-    refresh: load,
+    run: load,
   } = useAsyncRequest<GameEvent | null>(
     (options) => eventsApi.getById(toValue(eventId), options),
     {

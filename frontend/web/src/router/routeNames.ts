@@ -2,6 +2,7 @@
 export const RouteNames = {
   home: 'home',
   events: 'events',
+  eventCreate: 'event-create',
   eventDetail: 'event-detail',
 } as const
 

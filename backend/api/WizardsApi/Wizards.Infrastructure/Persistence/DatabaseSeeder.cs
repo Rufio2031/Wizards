@@ -42,8 +42,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
                     options: ["Standard", "Modern", "Pioneer", "Commander", "Draft"]),
                 GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 40, 250,
                     "Minimum cards in a player's deck. Commander decks are exactly 100."),
-                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
-                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "180", 30, 480)
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30)
             ]),
         () => GameType.Create(
             "Yu-Gi-Oh!",
@@ -52,8 +51,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
                     description: "Which ban list and rule set the event is played under.",
                     options: ["Advanced", "Traditional", "Speed Duel"]),
                 GameTypeSetting.Create("deckSize", "Main deck size", SettingType.Int, "40", 40, 60),
-                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
-                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "150", 30, 480)
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30)
             ]),
         () => GameType.Create(
             "Pokémon TCG",
@@ -63,8 +61,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
                     options: ["Standard", "Expanded", "Unlimited"]),
                 GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 60, 60,
                     "Pokémon decks are exactly 60 cards, so this is fixed."),
-                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30),
-                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "150", 30, 480)
+                GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "4", 2, 30)
             ]),
 
         // Not a card game, and so exposes no deck size at all. Seeded to keep the claim that a new game
@@ -74,9 +71,10 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             "Catan",
             [
                 GameTypeSetting.Create("minPlayersToStart", "Minimum players to start", SettingType.Int, "3", 3, 6),
+                GameTypeSetting.Create("maxPlayers", "Maximum players", SettingType.Int, "4", 3, 6,
+                    "The base game seats four. Five and six need an expansion."),
                 GameTypeSetting.Create("victoryPointsToWin", "Victory points to win", SettingType.Int, "10", 8, 15,
                     "Raise this for a longer game."),
-                GameTypeSetting.Create("durationInMinutes", "Duration (minutes)", SettingType.Int, "90", 45, 180),
                 GameTypeSetting.Create("usesExpansion", "Uses an expansion", SettingType.Bool, "false")
             ])
     ];

@@ -4,6 +4,12 @@ export interface ProblemDetails {
   title?: string
   detail?: string
   status?: number
+
+  /**
+   * Messages keyed by the field each is about, as a validation failure carries.
+   * The empty key holds failures about the request as a whole.
+   */
+  errors?: Record<string, string[]>
 }
 
 /** A failed API call, with whatever problem detail the API supplied. */
@@ -12,6 +18,9 @@ export class ApiError extends Error {
   readonly type?: string
   readonly title?: string
   readonly detail?: string
+
+  /** Empty for a failure the API did not attribute to any field. */
+  readonly errors: Record<string, string[]>
 
   constructor(
     status: number,
@@ -28,6 +37,7 @@ export class ApiError extends Error {
     this.type = problem.type
     this.title = problem.title
     this.detail = problem.detail
+    this.errors = problem.errors ?? {}
   }
 }
 

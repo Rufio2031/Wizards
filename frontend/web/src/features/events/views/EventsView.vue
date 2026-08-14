@@ -12,7 +12,11 @@ load()
 
 <template>
   <section class="events">
-    <h1 class="events__title">Events</h1>
+    <div class="events__header">
+      <h1 class="events__title">Events</h1>
+
+      <AppAction :to="{ name: RouteNames.eventCreate }">Schedule an event</AppAction>
+    </div>
 
     <p v-if="isLoading">Loading events…</p>
 
@@ -42,8 +46,17 @@ load()
 </template>
 
 <style scoped>
+.events__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
 .events__title {
-  margin-top: 0;
+  margin: 0;
 }
 
 .events__retry {

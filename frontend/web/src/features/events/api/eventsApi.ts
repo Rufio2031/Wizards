@@ -1,7 +1,7 @@
 import { httpClient, type RequestOptions } from '@/services/http/httpClient'
 import type { Page } from '@/services/http/pagination'
 
-import type { GameEvent } from '../types/event'
+import type { CreateEventRequest, GameEvent } from '../types/event'
 
 const EVENTS_PATH = '/events'
 
@@ -41,6 +41,23 @@ export const eventsApi = {
 
     if (!event) {
       throw new Error('The event endpoint returned no body.')
+    }
+
+    return event
+  },
+
+  async create(
+    request: CreateEventRequest,
+    options?: RequestOptions,
+  ): Promise<GameEvent> {
+    const event = await httpClient.post<GameEvent>(
+      EVENTS_PATH,
+      request,
+      options,
+    )
+
+    if (!event) {
+      throw new Error('Creating an event returned no body.')
     }
 
     return event
