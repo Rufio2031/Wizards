@@ -11,6 +11,7 @@ import { isApiError } from '@/services/http/ApiError'
 import { formatSchedule } from '@/utils/dateTime'
 
 import EventQrCode from '../components/EventQrCode.vue'
+import EventRegistrationList from '../components/EventRegistrationList.vue'
 import { useEvent } from '../composables/useEvent'
 
 const props = defineProps<{
@@ -82,6 +83,12 @@ const hasSelections = computed(
       <h2 class="event-detail__registration-heading">Registration</h2>
 
       <EventQrCode class="event-detail__qr-code" :event-id="event.eventId" />
+
+      <EventRegistrationList
+        class="event-detail__registrations"
+        :event-id="event.eventId"
+        :registration-limit="event.registrationLimit"
+      />
     </template>
   </section>
 </template>
@@ -135,5 +142,9 @@ const hasSelections = computed(
 
 .event-detail__qr-code {
   margin-top: 16px;
+}
+
+.event-detail__registrations {
+  margin-top: 32px;
 }
 </style>
