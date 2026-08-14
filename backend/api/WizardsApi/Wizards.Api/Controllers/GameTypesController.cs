@@ -8,30 +8,15 @@ namespace Wizards.Api.Controllers;
 /// <summary>
 /// Serves the game types resource.
 /// </summary>
+/// <param name="gameTypesService">
+/// The service backing every action on this controller. Supplied by dependency injection; never
+/// <see langword="null"/>.
+/// </param>
 [ApiController]
 [Route("gametypes")]
 [Produces("application/json")]
-public class GameTypesController : ControllerBase
+public class GameTypesController(IGameTypesService gameTypesService) : ControllerBase
 {
-    private readonly IGameTypesService gameTypesService;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GameTypesController"/> class.
-    /// </summary>
-    /// <param name="gameTypesService">
-    /// The service backing every action on this controller. Supplied by dependency injection; never
-    /// <see langword="null"/>.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="gameTypesService"/> is <see langword="null"/>.
-    /// </exception>
-    public GameTypesController(IGameTypesService gameTypesService)
-    {
-        ArgumentNullException.ThrowIfNull(gameTypesService);
-
-        this.gameTypesService = gameTypesService;
-    }
-
     /// <summary>
     /// Retrieves every registered game type, each together with the settings it exposes.
     /// </summary>
@@ -49,7 +34,7 @@ public class GameTypesController : ControllerBase
         CancellationToken cancellationToken)
     {
         IReadOnlyList<GameTypeTemplateResponse> gameTypes =
-            await this.gameTypesService.GetGameTypes(cancellationToken);
+            await gameTypesService.GetGameTypes(cancellationToken);
 
         return this.Ok(gameTypes);
     }

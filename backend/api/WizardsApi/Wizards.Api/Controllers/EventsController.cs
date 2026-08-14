@@ -13,30 +13,15 @@ namespace Wizards.Api.Controllers;
 /// <summary>
 /// Serves the events resource.
 /// </summary>
+/// <param name="eventsService">
+/// The service backing every action on this controller. Supplied by dependency injection; never
+/// <see langword="null"/>.
+/// </param>
 [ApiController]
 [Route("events")]
 [Produces("application/json")]
-public class EventsController : ControllerBase
+public class EventsController(IEventsService eventsService) : ControllerBase
 {
-    private readonly IEventsService eventsService;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="EventsController"/> class.
-    /// </summary>
-    /// <param name="eventsService">
-    /// The service backing every action on this controller. Supplied by dependency injection; never
-    /// <see langword="null"/>.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="eventsService"/> is <see langword="null"/>.
-    /// </exception>
-    public EventsController(IEventsService eventsService)
-    {
-        ArgumentNullException.ThrowIfNull(eventsService);
-
-        this.eventsService = eventsService;
-    }
-
     /// <summary>
     /// Retrieves a page of events, ordered by when they start.
     /// </summary>
@@ -62,7 +47,7 @@ public class EventsController : ControllerBase
         [FromQuery] GetEventsRequest request,
         CancellationToken cancellationToken)
     {
-        Page<EventResponse> page = await this.eventsService.GetEvents(request, cancellationToken);
+        Page<EventResponse> page = await eventsService.GetEvents(request, cancellationToken);
 
         return this.Ok(page);
     }
@@ -88,7 +73,7 @@ public class EventsController : ControllerBase
             return this.NotFound();
         }
 
-        EventResponse? @event = await this.eventsService.GetEvent(eventId, cancellationToken);
+        EventResponse? @event = await eventsService.GetEvent(eventId, cancellationToken);
 
         if (@event is null)
         {
@@ -117,7 +102,7 @@ public class EventsController : ControllerBase
         [FromBody] CreateEventRequest request,
         CancellationToken cancellationToken)
     {
-        EventWriteResult result = await this.eventsService.AddEvent(request, cancellationToken);
+        EventWriteResult result = await eventsService.AddEvent(request, cancellationToken);
 
         return result switch
         {
