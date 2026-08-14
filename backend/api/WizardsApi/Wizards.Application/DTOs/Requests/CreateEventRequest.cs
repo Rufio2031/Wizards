@@ -25,6 +25,11 @@ namespace Wizards.Application.DTOs.Requests;
 /// The instant the event ends, which must fall after <paramref name="StartDateTime"/>, written and
 /// read the same way. Required, so every event carries an end a calendar invite can state.
 /// </param>
+/// <param name="RegistrationLimit">
+/// How many players the event accepts, at least one and no more than
+/// <see cref="Event.MaxRegistrationLimit"/>. Omit or pass <see langword="null"/> for an event that
+/// accepts as many as one can.
+/// </param>
 /// <param name="GameType">
 /// The game the event is played with, and the settings chosen for it. Required, and rejected when no
 /// game type carries that identifier.
@@ -42,6 +47,9 @@ public record CreateEventRequest(
 
     [Required]
     DateTime EndDateTime,
+
+    [Range(1, Event.MaxRegistrationLimit)]
+    int? RegistrationLimit,
 
     [Required]
     EventGameTypeRequest GameType);

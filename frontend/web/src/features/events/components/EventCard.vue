@@ -30,6 +30,8 @@ withDefaults(
       {{ formatSchedule(event.startDateTime, event.endDateTime) }}
     </p>
 
+    <p class="event-card__meta">Up to {{ event.registrationLimit }} players</p>
+
     <p v-if="event.description" class="event-card__description">
       {{ event.description }}
     </p>
@@ -72,6 +74,10 @@ withDefaults(
 .event-card__meta {
   margin-top: 8px;
   font-size: 0.875rem;
+}
+
+.event-card__meta + .event-card__meta {
+  margin-top: 2px;
 }
 
 .event-card__description {

@@ -77,6 +77,7 @@ internal sealed class EventsService(
                 gameType,
                 request.StartDateTime,
                 request.EndDateTime,
+                request.RegistrationLimit,
                 selections);
         }
         catch (DomainException exception)

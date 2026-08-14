@@ -11,6 +11,7 @@ import type { GameTypeTemplate } from '@/features/gameTypes/types/gameType'
 import { RouteNames } from '@/router/routeNames'
 
 import { useCreateEvent } from '../composables/useCreateEvent'
+import { REGISTRATION_LIMIT } from '../types/event'
 
 const UNEXPECTED_FAILURE = 'We could not schedule the event just now. Please try again.'
 
@@ -23,6 +24,7 @@ const name = ref('')
 const description = ref('')
 const startDateTime = ref('')
 const endDateTime = ref('')
+const registrationLimit = ref(REGISTRATION_LIMIT.max)
 const selectedGameTypeId = ref('')
 
 /** Keyed by setting key, and only ever holding the currently selected game's settings. */
@@ -44,7 +46,15 @@ function settingError(key: string): string | undefined {
 // Reported errors describe the details as they were submitted, so the first
 // correction retires them rather than leaving them under fields being fixed.
 watch(
-  [name, description, startDateTime, endDateTime, selectedGameTypeId, selections],
+  [
+    name,
+    description,
+    startDateTime,
+    endDateTime,
+    registrationLimit,
+    selectedGameTypeId,
+    selections,
+  ],
   () => clearFailure(),
   { deep: true },
 )
@@ -66,13 +76,6 @@ watch(gameTypes, (loaded) => {
   }
 })
 
-/**
- * Converts a `datetime-local` value to the UTC instant it denotes.
- *
- * The control yields wall-clock time in the browser's zone and no offset, so
- * the zone has to be applied rather than assumed away: appending `Z` would
- * relabel 18:00 local as 18:00 UTC and shift the event by the offset.
- */
 function toUtcInstant(localValue: string): string {
   return new Date(localValue).toISOString()
 }
@@ -83,6 +86,7 @@ async function submit() {
     description: description.value || undefined,
     startDateTime: toUtcInstant(startDateTime.value),
     endDateTime: toUtcInstant(endDateTime.value),
+    registrationLimit: registrationLimit.value,
     gameType: {
       gameTypeId: selectedGameTypeId.value,
       selections: selections.value,
@@ -164,6 +168,27 @@ load()
 
       <AppField
         v-slot="{ id, describedBy, invalid }"
+        label="Player limit"
+        :hint="`Between ${REGISTRATION_LIMIT.min} and ${REGISTRATION_LIMIT.max} players.`"
+        :error="fieldError('RegistrationLimit')"
+      >
+        <input
+          :id="id"
+          v-model.number="registrationLimit"
+          class="create-event__limit"
+          type="number"
+          inputmode="numeric"
+          :min="REGISTRATION_LIMIT.min"
+          :max="REGISTRATION_LIMIT.max"
+          step="1"
+          :aria-describedby="describedBy"
+          :aria-invalid="invalid"
+          required
+        />
+      </AppField>
+
+      <AppField
+        v-slot="{ id, describedBy, invalid }"
         label="Game"
         :error="fieldError('gameType.gameTypeId')"
       >
@@ -212,6 +237,11 @@ load()
   flex-direction: column;
   gap: 20px;
   max-width: 480px;
+}
+
+.create-event__limit {
+  width: 5.5rem;
+  text-align: right;
 }
 
 .create-event__settings {

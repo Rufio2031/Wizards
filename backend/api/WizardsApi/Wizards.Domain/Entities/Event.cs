@@ -10,8 +10,8 @@ public class Event
     /// <summary>The maximum length of an event's description.</summary>
     public const int MaxDescriptionLength = 2000;
 
-    /// <summary>The maximum number of players who may register for an event.</summary>
-    private const int MaxRegistrationLimit = 30;
+    /// <summary>The most players an event may accept.</summary>
+    public const int MaxRegistrationLimit = 30;
 
     /// <summary>Gets the primary key of the event.</summary>
     public int Id { get; private set; }
@@ -56,8 +56,7 @@ public class Event
     private Event() { }
 
     /// <summary>
-    /// Creates an event that has never been persisted, assigning it a new identifier and the standard
-    /// registration limit.
+    /// Creates an event that has never been persisted, assigning it a new identifier.
     /// </summary>
     /// <param name="name">
     /// The display name of the event. Surrounding whitespace is trimmed before the length is checked.
@@ -82,6 +81,11 @@ public class Event
     /// Thrown when either instant is not <see cref="DateTimeKind.Utc"/>, or when
     /// <paramref name="selections"/> contains a null entry.
     /// </exception>
+    /// <param name="registrationLimit">
+    /// How many players the event accepts, at least one and no more than
+    /// <see cref="MaxRegistrationLimit"/>, or <see langword="null"/> for an event that accepts as many
+    /// as one can.
+    /// </param>
     /// <param name="selections">
     /// The settings settled for the event, stored as given. Whether they satisfy the game type is a
     /// rule the game type states, so the caller resolves it and calls
@@ -91,9 +95,9 @@ public class Event
     /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
     /// when <paramref name="description"/> is too long, when <paramref name="startDateTime"/> is in the
     /// past, when <paramref name="endDateTime"/> does not fall after
-    /// <paramref name="startDateTime"/>, or when <paramref name="selections"/> carry two values for the
-    /// same setting. The message states the rule that was broken and is safe to report to the
-    /// originator of the request.
+    /// <paramref name="startDateTime"/>, when <paramref name="registrationLimit"/> falls outside the
+    /// allowed range, or when <paramref name="selections"/> carry two values for the same setting. The
+    /// message states the rule that was broken and is safe to report to the originator of the request.
     /// </exception>
     public static Event Create(
         string name,
@@ -101,6 +105,7 @@ public class Event
         GameType gameType,
         DateTime startDateTime,
         DateTime endDateTime,
+        int? registrationLimit = null,
         IEnumerable<EventGameTypeSelection>? selections = null)
     {
         ArgumentNullException.ThrowIfNull(gameType);
@@ -109,6 +114,10 @@ public class Event
         description = ValidateAndNormalizeDescription(description);
 
         ValidateSchedule(startDateTime, endDateTime);
+
+        int limit = registrationLimit ?? MaxRegistrationLimit;
+
+        ValidateRegistrationLimit(limit);
 
         List<EventGameTypeSelection> eventSelections = selections?.ToList() ?? [];
 
@@ -122,7 +131,7 @@ public class Event
             GameType = gameType,
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
-            RegistrationLimit = MaxRegistrationLimit,
+            RegistrationLimit = limit,
             selections = eventSelections
         };
     }
@@ -226,6 +235,20 @@ public class Event
         }
 
         return description;
+    }
+
+    private static void ValidateRegistrationLimit(int registrationLimit)
+    {
+        if (registrationLimit < 1)
+        {
+            throw new DomainException("An event must accept at least one player.");
+        }
+
+        if (registrationLimit > MaxRegistrationLimit)
+        {
+            throw new DomainException(
+                $"An event cannot accept more than {MaxRegistrationLimit} players.");
+        }
     }
 
     private static void ValidateSelections(List<EventGameTypeSelection> selections)
