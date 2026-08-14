@@ -10,6 +10,7 @@ namespace Wizards.Application.DTOs.Responses;
 /// <param name="Description">
 /// The event's long-form description, or <see langword="null"/> when the organizer has not supplied one.
 /// </param>
+/// <param name="Location">Where the event is held.</param>
 /// <param name="StartDateTime">
 /// The instant the event begins, always in UTC and always serialized with a trailing <c>Z</c>.
 /// </param>
@@ -27,6 +28,7 @@ public record EventResponse(
     Guid EventId,
     string Name,
     string? Description,
+    string Location,
     DateTime StartDateTime,
     DateTime EndDateTime,
     int RegistrationLimit,
@@ -45,6 +47,7 @@ public record EventResponse(
             @event.PublicId,
             @event.Name,
             @event.Description,
+            @event.Location,
             @event.StartDateTime,
             @event.EndDateTime,
             @event.RegistrationLimit,

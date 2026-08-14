@@ -14,6 +14,10 @@ namespace Wizards.Application.DTOs.Requests;
 /// The event's long-form description, capped at <see cref="Event.MaxDescriptionLength"/> characters.
 /// Omit or pass <see langword="null"/> to leave the event without one.
 /// </param>
+/// <param name="Location">
+/// Where the event is held, stated on the event's calendar invite. Required, and capped at
+/// <see cref="Event.MaxLocationLength"/> characters.
+/// </param>
 /// <param name="StartDateTime">
 /// The instant the event begins, which must not already have passed. Sent as an ISO 8601 date and
 /// time down to at least the minute, such as <c>2026-08-13T16:00:00Z</c>; a date on its own such as
@@ -41,6 +45,10 @@ public record CreateEventRequest(
 
     [StringLength(Event.MaxDescriptionLength)]
     string? Description,
+
+    [Required]
+    [StringLength(Event.MaxLocationLength, MinimumLength = 1)]
+    string Location,
 
     [Required]
     DateTime StartDateTime,

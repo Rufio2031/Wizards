@@ -1,4 +1,4 @@
-import { toValue, watch, type MaybeRefOrGetter } from 'vue'
+import { computed, toValue, watch, type MaybeRefOrGetter } from 'vue'
 
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
 
@@ -27,5 +27,9 @@ export function useEvent(eventId: MaybeRefOrGetter<string>) {
     { immediate: true },
   )
 
-  return { event, isLoading, error, load }
+  const calendarInviteUrl = computed(() =>
+    event.value ? eventsApi.calendarInviteUrl(event.value.eventId) : undefined,
+  )
+
+  return { event, isLoading, error, load, calendarInviteUrl }
 }
