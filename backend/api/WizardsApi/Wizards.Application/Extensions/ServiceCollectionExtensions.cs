@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddScoped<IEventsService, EventsService>();
+        services.AddScoped<IGameTypesService, GameTypesService>();
 
         return services;
     }

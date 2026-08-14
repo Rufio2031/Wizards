@@ -63,8 +63,8 @@ internal sealed class EventsService(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        GameType? gameType = await gameTypesRepository.GetGameTypeByNameAsync(
-            request.GameType.Name,
+        GameType? gameType = await gameTypesRepository.GetGameTypeByPublicIdAsync(
+            request.GameType.GameTypeId,
             cancellationToken);
 
         if (gameType is null)

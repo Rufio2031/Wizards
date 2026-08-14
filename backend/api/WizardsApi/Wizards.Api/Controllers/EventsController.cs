@@ -108,7 +108,7 @@ public class EventsController : ControllerBase
     /// <response code="400">
     /// The supplied details failed validation, break a rule about what makes a valid event, such as a
     /// start date and time that has already passed or an end that does not fall after the start, or
-    /// name a game type that is not registered.
+    /// reference a game type that is not registered.
     /// </response>
     [HttpPost]
     [ProducesResponseType<EventResponse>(StatusCodes.Status201Created)]

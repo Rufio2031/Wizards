@@ -42,14 +42,14 @@ public interface IEventsService
     /// Creates an event from the supplied details and assigns it a new identifier.
     /// </summary>
     /// <remarks>
-    /// The requested game type is resolved by name and is never created, so a name that is not already
-    /// registered fails the call rather than registering it.
+    /// The requested game type is resolved by identifier and is never created, so an identifier that is
+    /// not already registered fails the call rather than registering it.
     /// </remarks>
     /// <param name="request">The details of the event to create.</param>
     /// <param name="cancellationToken">Cancels the write before it completes.</param>
     /// <returns>
     /// A result carrying the created event, one carrying <see cref="EventErrors.GameTypeNotFound"/>
-    /// when no game type is registered under the requested name, or one carrying an
+    /// when no game type carries the requested identifier, or one carrying an
     /// <see cref="EventErrors.Invalid(string)"/> failure when the requested details break a rule about
     /// what makes a valid event, such as a start date and time that has already passed or an end that
     /// does not fall after the start.

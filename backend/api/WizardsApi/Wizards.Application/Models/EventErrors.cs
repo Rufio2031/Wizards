@@ -8,12 +8,12 @@ namespace Wizards.Application.Models;
 public static class EventErrors
 {
     /// <summary>
-    /// No game type is registered under the requested name, so nothing was written.
+    /// No game type carries the requested identifier, so nothing was written.
     /// </summary>
     public static readonly ApplicationError GameTypeNotFound = new(
         ErrorKind.Invalid,
-        "gameType.name",
-        "No game type is registered under that name.");
+        "gameType.gameTypeId",
+        "No game type is registered under that identifier.");
 
     /// <summary>
     /// Reports that the supplied details break a rule about what makes a valid event, so nothing was
