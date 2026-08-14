@@ -3,14 +3,9 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// Compose supplies this so the containerized dev server can reach the API over
-// compose DNS. The fallback is the API's `dotnet run` address on the host.
-// Deliberately unprefixed: `VITE_` marks values that are safe to inline into the
-// bundle, and Node reads this at config time so it never reaches client code.
 const devApiProxyTarget =
   process.env.DEV_API_PROXY_TARGET ?? 'http://localhost:5208'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
   resolve: {
