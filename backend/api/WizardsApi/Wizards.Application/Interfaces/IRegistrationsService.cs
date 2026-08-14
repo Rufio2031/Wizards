@@ -1,4 +1,5 @@
 using Wizards.Application.DTOs.Requests;
+using Wizards.Application.DTOs.Responses;
 using Wizards.Application.Models;
 
 namespace Wizards.Application.Interfaces;
@@ -34,5 +35,24 @@ public interface IRegistrationsService
     Task<ApplicationError?> AddRegistration(
         Guid eventId,
         CreateRegistrationRequest request,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Retrieves the players registered for an event, in the order they registered.
+    /// </summary>
+    /// <param name="eventId">
+    /// The identifier of the event to read registrations for. Must not be <see cref="Guid.Empty"/>.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the read before it completes.</param>
+    /// <returns>
+    /// The registrations, empty when nobody has registered, or <see langword="null"/> when no event
+    /// carries that identifier. An event nobody has registered for reads as an empty list, so the two
+    /// are never confused.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="eventId"/> is <see cref="Guid.Empty"/>.
+    /// </exception>
+    Task<IReadOnlyList<RegistrationResponse>?> GetRegistrations(
+        Guid eventId,
         CancellationToken cancellationToken);
 }

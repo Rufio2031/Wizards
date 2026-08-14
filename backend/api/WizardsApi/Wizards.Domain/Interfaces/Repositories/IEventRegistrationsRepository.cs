@@ -21,6 +21,24 @@ public interface IEventRegistrationsRepository
     Task<int> CountRegistrationsAsync(Event @event, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Retrieves the registrations held against a single event, in the order they were taken.
+    /// </summary>
+    /// <param name="event">
+    /// The event to read registrations for, as read from the store. Every returned registration is
+    /// held against this instance.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the read before it completes.</param>
+    /// <returns>
+    /// The registrations, empty when nobody has registered. Never <see langword="null"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="event"/> is <see langword="null"/>.
+    /// </exception>
+    Task<IReadOnlyList<EventRegistration>> GetRegistrationsAsync(
+        Event @event,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Stages the insertion of a new registration.
     /// </summary>
     /// <remarks>

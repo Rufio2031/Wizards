@@ -281,10 +281,10 @@ load()
 .create-event__error {
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--color-accent-border);
+  border: 1px solid var(--color-danger-border);
   border-radius: 6px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .create-event__actions {

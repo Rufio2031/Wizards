@@ -56,6 +56,23 @@ public class EventRegistration
         };
     }
 
+    /// <summary>
+    /// Rebuilds a registration from already-persisted state, applying no validation.
+    /// </summary>
+    /// <remarks>
+    /// This is for persistence mapping only. Callers taking a registration for the first time must use
+    /// <see cref="Create"/>, which enforces the entity's invariants.
+    /// </remarks>
+    /// <param name="event">The stored event the registration is held against, already rehydrated.</param>
+    /// <param name="name">The stored name the player registered under.</param>
+    /// <returns>The rehydrated registration.</returns>
+    public static EventRegistration Reconstitute(Event @event, string name) =>
+        new()
+        {
+            Event = @event,
+            Name = name
+        };
+
     private static string ValidateAndNormalizeName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

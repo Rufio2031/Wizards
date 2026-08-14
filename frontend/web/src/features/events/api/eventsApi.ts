@@ -6,6 +6,7 @@ import type {
   CreateEventRequest,
   CreateRegistrationRequest,
   GameEvent,
+  Registration,
 } from '../types/event'
 
 const EVENTS_PATH = '/events'
@@ -73,6 +74,22 @@ export const eventsApi = {
     }
 
     return event
+  },
+
+  async listRegistrations(
+    eventId: string,
+    options?: RequestOptions,
+  ): Promise<Registration[]> {
+    const registrations = await httpClient.get<Registration[]>(
+      `${EVENTS_PATH}/${encodeURIComponent(eventId)}/registrations`,
+      options,
+    )
+
+    if (!registrations) {
+      throw new Error('The registrations endpoint returned no body.')
+    }
+
+    return registrations
   },
 
   // Resolving is the whole answer, so an empty body is the expected success and

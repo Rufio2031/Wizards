@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using Wizards.Api.Extensions;
 using Wizards.Application.DTOs.Requests;
+using Wizards.Application.DTOs.Responses;
 using Wizards.Application.Interfaces;
 using Wizards.Application.Models;
 
@@ -12,6 +13,42 @@ namespace Wizards.Api.Controllers;
 [Produces("application/json")]
 public class RegistrationsController(IRegistrationsService registrationsService) : ControllerBase
 {
+    /// <summary>
+    /// Retrieves the players registered for an event, in the order they registered.
+    /// </summary>
+    /// <param name="eventId">The identifier of the event to read registrations for.</param>
+    /// <param name="cancellationToken">Cancels the request before it completes.</param>
+    /// <returns>The registrations held against the event.</returns>
+    /// <response code="200">
+    /// The registrations were retrieved. An event nobody has registered for carries none.
+    /// </response>
+    /// <response code="404">
+    /// No event carries the supplied identifier. An empty identifier is never assigned to an event and
+    /// is reported the same way.
+    /// </response>
+    [HttpGet]
+    [ProducesResponseType<IReadOnlyList<RegistrationResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<RegistrationResponse>>> GetRegistrations(
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        if (eventId == Guid.Empty)
+        {
+            return this.NotFound();
+        }
+
+        IReadOnlyList<RegistrationResponse>? registrations =
+            await registrationsService.GetRegistrations(eventId, cancellationToken);
+
+        if (registrations is null)
+        {
+            return this.NotFound();
+        }
+
+        return this.Ok(registrations);
+    }
+
     /// <summary>
     /// Registers a player for an event.
     /// </summary>

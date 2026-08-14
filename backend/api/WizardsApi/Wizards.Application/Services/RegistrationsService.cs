@@ -1,4 +1,5 @@
 using Wizards.Application.DTOs.Requests;
+using Wizards.Application.DTOs.Responses;
 using Wizards.Application.Interfaces;
 using Wizards.Application.Models;
 using Wizards.Domain.Entities;
@@ -64,5 +65,30 @@ internal sealed class RegistrationsService(
         }
 
         return null;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RegistrationResponse>?> GetRegistrations(
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        if (eventId == Guid.Empty)
+        {
+            throw new ArgumentException("Event identifier cannot be empty.", nameof(eventId));
+        }
+
+        Event? @event = await eventsRepository.GetEventByPublicIdAsync(eventId, cancellationToken);
+
+        if (@event is null)
+        {
+            return null;
+        }
+
+        IReadOnlyList<EventRegistration> registrations =
+            await registrationsRepository.GetRegistrationsAsync(@event, cancellationToken);
+
+        return registrations
+            .Select(registration => new RegistrationResponse(registration))
+            .ToList();
     }
 }

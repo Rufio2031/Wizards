@@ -20,6 +20,24 @@ internal sealed class EventRegistrationsRepository(AppDbContext dbContext) : IEv
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Domain.Entities.EventRegistration>> GetRegistrationsAsync(
+        Domain.Entities.Event @event,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+
+        List<Records.EventRegistration> registrationRecords = await dbContext.EventRegistrations
+            .AsNoTracking()
+            .Where(registration => registration.EventId == @event.Id)
+            .OrderBy(registration => registration.Id)
+            .ToListAsync(cancellationToken);
+
+        return registrationRecords
+            .Select(registrationRecord => registrationRecord.ToEntity(@event))
+            .ToList();
+    }
+
+    /// <inheritdoc />
     public Task AddRegistrationAsync(
         Domain.Entities.EventRegistration registration,
         CancellationToken cancellationToken)

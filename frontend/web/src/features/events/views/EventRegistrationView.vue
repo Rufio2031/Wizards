@@ -2,8 +2,10 @@
 import { computed, ref, watch } from 'vue'
 
 import AppAction from '@/components/AppAction.vue'
+import AppBackLink from '@/components/AppBackLink.vue'
 import AppField from '@/components/AppField.vue'
 import { useFormFailure } from '@/composables/useFormFailure'
+import { RouteNames } from '@/router/routeNames'
 import { isApiError } from '@/services/http/ApiError'
 
 import EventCard from '../components/EventCard.vue'
@@ -55,6 +57,13 @@ function submit() {
     </template>
 
     <template v-else-if="event">
+      <AppBackLink
+        class="event-registration__back"
+        :to="{ name: RouteNames.eventDetail, params: { eventId } }"
+      >
+        Back to event
+      </AppBackLink>
+
       <h1 class="event-registration__title">
         {{ isRegistered ? 'You are registered' : 'Register' }}
       </h1>
@@ -90,6 +99,10 @@ function submit() {
 </template>
 
 <style scoped>
+.event-registration__back {
+  margin-bottom: 16px;
+}
+
 .event-registration__title {
   margin-top: 0;
 }
@@ -120,9 +133,9 @@ function submit() {
 .event-registration__error {
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--color-accent-border);
+  border: 1px solid var(--color-danger-border);
   border-radius: 6px;
-  color: var(--color-accent);
-  background: var(--color-accent-soft);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 </style>

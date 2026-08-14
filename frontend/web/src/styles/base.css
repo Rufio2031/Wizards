@@ -102,5 +102,5 @@ input:read-only:not([type='checkbox']):not([type='range']) {
 }
 
 [aria-invalid='true'] {
-  border-color: var(--color-accent-border);
+  border-color: var(--color-danger-border);
 }

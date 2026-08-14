@@ -1,14 +1,30 @@
 namespace Wizards.Infrastructure.Extensions;
 
 /// <summary>
-/// Translates the event registration domain entity into its persistence record.
+/// Translates between the event registration domain entity and its persistence record.
 /// </summary>
-/// <remarks>
-/// Nothing reads a registration back yet, so the translation only runs on the way to the database.
-/// The other direction is added here once something addresses one.
-/// </remarks>
 internal static class EventRegistrationMappingExtensions
 {
+    /// <summary>
+    /// Rehydrates the domain entity a stored registration represents.
+    /// </summary>
+    /// <param name="registrationRecord">The stored registration to translate.</param>
+    /// <param name="event">
+    /// The event the registration is held against, already rehydrated. Supplied by the caller rather
+    /// than read through the record's navigation, since a registration is always read for an event the
+    /// caller already has.
+    /// </param>
+    /// <returns>The rehydrated registration entity.</returns>
+    internal static Domain.Entities.EventRegistration ToEntity(
+        this Persistence.Records.EventRegistration registrationRecord,
+        Domain.Entities.Event @event)
+    {
+        ArgumentNullException.ThrowIfNull(registrationRecord);
+        ArgumentNullException.ThrowIfNull(@event);
+
+        return Domain.Entities.EventRegistration.Reconstitute(@event, registrationRecord.Name);
+    }
+
     /// <summary>
     /// Projects a registration entity onto the record shape the database stores.
     /// </summary>
