@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router'
 
-defineProps<{
-  to?: RouteLocationRaw
-}>()
+withDefaults(
+  defineProps<{
+    to?: RouteLocationRaw
+
+    /** Ignored when `to` renders a link. A form's submit control needs `submit`. */
+    type?: 'button' | 'submit'
+
+    /** Styles as a solid button. */
+    primary?: boolean
+  }>(),
+  { to: undefined, type: 'button', primary: false },
+)
 </script>
 
 <template>
@@ -11,7 +20,13 @@ defineProps<{
     <slot />
   </RouterLink>
 
-  <button v-else class="app-action" type="button">
+  <!-- `disabled` is not a prop: it falls through to the button on its own. -->
+  <button
+    v-else
+    class="app-action"
+    :class="{ 'app-action--primary': primary }"
+    :type="type"
+  >
     <slot />
   </button>
 </template>
@@ -31,5 +46,15 @@ defineProps<{
 
 .app-action:hover {
   box-shadow: var(--shadow-sm);
+}
+
+.app-action--primary {
+  color: var(--color-bg);
+  background: var(--color-accent);
+}
+
+.app-action:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 </style>

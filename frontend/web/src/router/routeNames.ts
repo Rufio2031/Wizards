@@ -4,6 +4,7 @@ export const RouteNames = {
   events: 'events',
   eventCreate: 'event-create',
   eventDetail: 'event-detail',
+  eventRegistration: 'event-registration',
 } as const
 
 export type RouteName = (typeof RouteNames)[keyof typeof RouteNames]

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 
 import AppAction from '@/components/AppAction.vue'
 import AppField from '@/components/AppField.vue'
+import { useFormFailure } from '@/composables/useFormFailure'
 import GameTypeSettingField from '@/features/gameTypes/components/GameTypeSettingField.vue'
 import { useGameTypes } from '@/features/gameTypes/composables/useGameTypes'
 import type { GameTypeTemplate } from '@/features/gameTypes/types/gameType'
@@ -31,34 +32,14 @@ const selectedGameType = computed<GameTypeTemplate | undefined>(() =>
   gameTypes.value.find((gameType) => gameType.gameTypeId === selectedGameTypeId.value),
 )
 
+const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
+
 /** The API blames a rejected setting on the field its value arrived in. */
 const SETTING_FIELD_PREFIX = 'gameType.selections.'
 
 function settingError(key: string): string | undefined {
-  return failure.value?.fieldErrors[`${SETTING_FIELD_PREFIX}${key}`]?.[0]
+  return fieldError(`${SETTING_FIELD_PREFIX}${key}`)
 }
-
-/** Model validation names the request property it rejected, such as `Name`. */
-function fieldError(property: string): string | undefined {
-  return failure.value?.fieldErrors[property]?.[0]
-}
-
-// A failure the API attributed entirely to fields needs no banner. One it did
-// not explain at all falls back to this view's own copy, since a raw error
-// message is never shown.
-const formError = computed(() => {
-  const current = failure.value
-
-  if (!current) {
-    return ''
-  }
-
-  if (current.formMessages.length > 0) {
-    return current.formMessages.join(' ')
-  }
-
-  return Object.keys(current.fieldErrors).length > 0 ? '' : UNEXPECTED_FAILURE
-})
 
 // Reported errors describe the details as they were submitted, so the first
 // correction retires them rather than leaving them under fields being fixed.

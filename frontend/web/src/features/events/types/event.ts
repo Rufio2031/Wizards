@@ -20,6 +20,11 @@ export interface GameEvent {
   selections: Record<string, string>
 }
 
+/** The details a player is registered for an event from. */
+export interface CreateRegistrationRequest {
+  name: string
+}
+
 /** The details a new event is created from. */
 export interface CreateEventRequest {
   name: string
