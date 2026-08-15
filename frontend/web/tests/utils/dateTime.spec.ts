@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatSchedule, toLocalDay } from '@/utils/dateTime'
+import {
+  formatSchedule,
+  toDateTimeLocalValue,
+  toLocalDay,
+  toUtcInstant,
+} from '@/utils/dateTime'
 
 const UNKNOWN = 'Date to be announced'
 
@@ -71,5 +76,48 @@ describe('toLocalDay', () => {
       key: 'unknown-day',
       label: UNKNOWN,
     })
+  })
+})
+
+describe('toUtcInstant', () => {
+  it('returns the UTC instant the local value names', () => {
+    expect(toUtcInstant('2026-03-14T09:30:00-05:00')).toBe(
+      '2026-03-14T14:30:00.000Z',
+    )
+
+    // A zoneless value is the browser's wall clock, so the instant it names must
+    // read back as that same wall clock wherever the suite runs.
+    const instant = toUtcInstant(MARCH_14_MORNING)
+
+    expect(instant).not.toBeNull()
+
+    const readBack = new Date(instant!)
+
+    expect(readBack.getHours()).toBe(9)
+    expect(readBack.getMinutes()).toBe(30)
+    expect(readBack.getDate()).toBe(14)
+  })
+
+  it('returns null rather than throwing when the value is unreadable', () => {
+    expect(toUtcInstant('not a date')).toBeNull()
+    expect(toUtcInstant('')).toBeNull()
+    expect(toUtcInstant('2026-02-30T99:99')).toBeNull()
+  })
+})
+
+describe('toDateTimeLocalValue', () => {
+  it('emits the local date and time a datetime-local input reads, zero padded', () => {
+    expect(toDateTimeLocalValue(new Date(2026, 0, 5, 7, 4))).toBe(
+      '2026-01-05T07:04',
+    )
+    expect(toDateTimeLocalValue(new Date(2026, 11, 31, 23, 59))).toBe(
+      '2026-12-31T23:59',
+    )
+  })
+
+  it('is not an ISO instant: no seconds, and no zone marker to shift the day', () => {
+    const midnight = new Date(2026, 2, 14, 0, 0)
+
+    expect(toDateTimeLocalValue(midnight)).toBe('2026-03-14T00:00')
   })
 })
