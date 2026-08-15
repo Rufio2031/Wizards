@@ -1,7 +1,6 @@
-import { computed, shallowRef, toValue, type MaybeRefOrGetter } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
-import { useAsyncRequest } from '@/composables/useAsyncRequest'
-import { emptyPage, type Page } from '@/services/http/pagination'
+import { usePagedRequest } from '@/composables/usePagedRequest'
 import { toLocalDay } from '@/utils/dateTime'
 import { groupBy } from '@/utils/grouping'
 
@@ -20,9 +19,6 @@ export interface UseEventsOptions {
   startingBefore?: MaybeRefOrGetter<Date | undefined>
 }
 
-/** Everything but the offset, held still for the length of one paging walk. */
-type PinnedQuery = Omit<ListEventsParams, 'skip'>
-
 export interface EventDayGroup {
   key: string
   label: string
@@ -40,32 +36,15 @@ function groupEventsByDay(events: readonly GameEvent[]): EventDayGroup[] {
 }
 
 /**
- * Loads events one page at a time, grouped by calendar day, upcoming by
- * default.
+ * Loads events one page at a time, grouped by calendar day, upcoming by default.
  *
- * Pages accumulate, so the day groups only ever grow until `load` starts over.
- * Options are read when `load` runs rather than watched, so a caller that
- * changes one calls `load` to re-query from the first page.
- *
- * @param options How the events are queried: page size, sort, and the window
- * their start must fall in.
- * @returns The accumulated events and their day groups, the states each region
- * of the list renders from, and the `load` and `loadMore` actions.
+ * @param options Page size, sort, and the window an event's start must fall in, each read when `load` runs.
+ * @returns The accumulated events and their day groups, alongside the paging state and actions.
  */
 export function useEvents(options: UseEventsOptions = {}) {
-  const loaded = shallowRef<GameEvent[]>([])
-  const requestedSkip = shallowRef(0)
-
-  function resolvePageSize(): number {
-    return toValue(options.pageSize) ?? DEFAULT_PAGE_SIZE
-  }
-
-  // One set of query values for the whole offset walk. A bound taken per
-  // request would move as events start, shifting the window out from under the
-  // skip and either dropping an event or appending one already loaded.
-  function pinQuery(): PinnedQuery {
+  function pinQuery(): Omit<ListEventsParams, 'skip'> {
     return {
-      take: resolvePageSize(),
+      take: toValue(options.pageSize) ?? DEFAULT_PAGE_SIZE,
       sortBy: toValue(options.sortBy),
       sortDirection: toValue(options.sortDirection),
       startingOnOrAfter: toValue(options.startingOnOrAfter) ?? new Date(),
@@ -73,62 +52,23 @@ export function useEvents(options: UseEventsOptions = {}) {
     }
   }
 
-  let query = pinQuery()
-
   const {
-    data,
-    isLoading: isFetching,
+    items: events,
+    pagination,
+    hasMore,
+    isLoading,
+    isLoadingMore,
     error,
-    run,
-  } = useAsyncRequest<Page<GameEvent>, ListEventsParams>(
+    loadFailed,
+    loadMoreFailed,
+    load,
+    loadMore,
+  } = usePagedRequest<GameEvent, Omit<ListEventsParams, 'skip'>>(
     (requestOptions, params) => eventsApi.list(params, requestOptions),
-    {
-      initialValue: emptyPage<GameEvent>(resolvePageSize()),
-      failureMessage: 'Loading events failed.',
-    },
+    { pinQuery, failureMessage: 'Loading events failed.' },
   )
 
-  const events = computed(() => loaded.value)
   const eventGroups = computed(() => groupEventsByDay(events.value))
-  const pagination = computed(() => data.value.pagination)
-
-  const hasMore = computed(
-    () => loaded.value.length < pagination.value.totalCount,
-  )
-
-  const isFirstPage = computed(() => requestedSkip.value === 0)
-  const isLoading = computed(() => isFetching.value && isFirstPage.value)
-  const isLoadingMore = computed(() => isFetching.value && !isFirstPage.value)
-  const loadFailed = computed(() => !!error.value && isFirstPage.value)
-  const loadMoreFailed = computed(() => !!error.value && !isFirstPage.value)
-
-  async function fetchFrom(skip: number): Promise<void> {
-    requestedSkip.value = skip
-
-    const page = await run({ skip, ...query })
-
-    if (!page) {
-      return
-    }
-
-    loaded.value = skip === 0 ? page.items : [...loaded.value, ...page.items]
-  }
-
-  /** Starts the list over at the first page, against freshly read options. */
-  function load(): Promise<void> {
-    query = pinQuery()
-
-    return fetchFrom(0)
-  }
-
-  /** Appends the page that follows what is already loaded. */
-  function loadMore(): Promise<void> {
-    if (isFetching.value || !hasMore.value) {
-      return Promise.resolve()
-    }
-
-    return fetchFrom(loaded.value.length)
-  }
 
   return {
     events,
