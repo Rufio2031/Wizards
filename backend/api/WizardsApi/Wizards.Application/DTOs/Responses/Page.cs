@@ -4,9 +4,8 @@ namespace Wizards.Application.DTOs.Responses;
 /// A page of items as returned to API callers, alongside the window it was read with.
 /// </summary>
 /// <remarks>
-/// The window is echoed back so a caller can page without tracking what it asked for. The last page
-/// is the one whose skip plus returned items reach <see cref="PaginationMeta.TotalCount"/> under the
-/// same filters.
+/// The last page is the one whose skip plus returned items reach
+/// <see cref="PaginationMeta.TotalCount"/> under the same filters.
 /// </remarks>
 /// <typeparam name="T">The type of item carried on the page.</typeparam>
 /// <param name="Items">

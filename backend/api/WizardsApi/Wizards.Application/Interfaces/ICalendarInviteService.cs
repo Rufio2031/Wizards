@@ -11,10 +11,8 @@ public interface ICalendarInviteService
     /// Retrieves an event and builds its calendar invite.
     /// </summary>
     /// <remarks>
-    /// The invite is serialized rather than joined from text, so an event's own details cannot be read
-    /// as calendar syntax. The identifier it carries is derived from the event's, so importing the same
-    /// invite twice updates one calendar entry rather than adding a second. Nothing is stored, so an
-    /// invite always states the event as it stands.
+    /// The invite's identifier is derived from the event's, so importing the same invite twice updates
+    /// one calendar entry rather than adding a second.
     /// </remarks>
     /// <param name="eventId">
     /// The identifier of the event to describe. Must not be <see cref="Guid.Empty"/>.

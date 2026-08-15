@@ -4,10 +4,8 @@ namespace Wizards.Domain.Exceptions;
 /// Thrown when a caller asks the domain for a state its rules forbid.
 /// </summary>
 /// <remarks>
-/// Reports a mistake the caller can correct, such as an event that ends before it starts, so a
-/// caller that can reach the originator is expected to catch it and report the message back. This
-/// is deliberately distinct from the argument exceptions the domain throws for a broken
-/// precondition, which report a programming error no caller can act on.
+/// Distinct from the argument exceptions the domain throws for a broken precondition: this reports
+/// a mistake the caller can correct, and its message is safe to report back.
 /// </remarks>
 public class DomainException : Exception
 {

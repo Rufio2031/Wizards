@@ -19,8 +19,7 @@ public static class ServiceProviderExtensions
     /// </summary>
     /// <remarks>
     /// Both steps are idempotent, so this is safe to call on every start against a database at any
-    /// point in its history. A failure is logged and rethrown rather than swallowed: a host that
-    /// cannot migrate or seed would serve a broken API, so it must not start.
+    /// point in its history.
     /// </remarks>
     /// <param name="serviceProvider">
     /// The built root provider. A scope is created internally, so this must not be a scoped provider

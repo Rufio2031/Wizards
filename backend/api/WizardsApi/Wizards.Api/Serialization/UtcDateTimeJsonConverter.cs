@@ -9,21 +9,9 @@ namespace Wizards.Api.Serialization;
 /// Reads every inbound date and time as a UTC instant and writes every outbound one the same way.
 /// </summary>
 /// <remarks>
-/// <para>
-/// This is the one place instants arriving in a request body are normalized, and everything behind
-/// it deals only in <see cref="DateTimeKind.Utc"/>. Instants arriving in a query string are bound by
-/// the framework and never reach this converter, as
-/// <see cref="Wizards.Application.DTOs.Requests.GetEventsRequest.StartingOnOrAfterUtc"/> describes.
-/// </para>
-/// <para>
-/// A value carrying an offset becomes the instant it denotes, so <c>18:00:00+02:00</c> and
-/// <c>16:00:00Z</c> store identically. A value carrying no zone marker is read as UTC rather than as
-/// server-local time, because the server's zone is an accident of deployment.
-/// </para>
-/// <para>
-/// Registering this replaces the default handling for <see cref="DateTime"/> and, since the
-/// serializer unwraps nullables, for <see cref="Nullable{T}"/> of <see cref="DateTime"/> as well.
-/// </para>
+/// Instants arriving in a query string are bound by the framework and never reach this converter.
+/// Registering it also covers <see cref="Nullable{T}"/> of <see cref="DateTime"/>, since the
+/// serializer unwraps nullables.
 /// </remarks>
 public sealed class UtcDateTimeJsonConverter : JsonConverter<DateTime>
 {

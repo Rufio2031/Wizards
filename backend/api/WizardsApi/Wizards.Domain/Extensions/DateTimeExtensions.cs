@@ -8,10 +8,7 @@ public static class DateTimeExtensions
     /// <summary>
     /// Returns the UTC instant a date and time denotes.
     /// </summary>
-    /// <remarks>
-    /// A value carrying no zone at all is read as UTC rather than as the host's local time, so the
-    /// same value cannot mean different things on different machines.
-    /// </remarks>
+    /// <remarks>A value carrying no zone is read as UTC rather than as the host's local time.</remarks>
     /// <param name="instant">The date and time to resolve.</param>
     /// <returns>The same instant, carrying <see cref="DateTimeKind.Utc"/>.</returns>
     public static DateTime ToUtcInstant(this DateTime instant) =>

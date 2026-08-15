@@ -3,10 +3,6 @@ using Wizards.Domain.Exceptions;
 namespace Wizards.Domain.Entities;
 
 /// <summary>Represents a game that in-store events can be played with.</summary>
-/// <remarks>
-/// What varies between one game and the next is carried as <see cref="Settings"/> rather than as
-/// fields.
-/// </remarks>
 public class GameType
 {
     /// <summary>The maximum length of a game type's name.</summary>
@@ -59,10 +55,6 @@ public class GameType
     }
 
     /// <summary>Rebuilds a game type from already-persisted state, applying no validation.</summary>
-    /// <remarks>
-    /// This is for persistence mapping only, and a new game type must come from
-    /// <see cref="Create(string, IEnumerable{GameTypeSetting})"/>.
-    /// </remarks>
     /// <param name="id">The stored primary key of the game type.</param>
     /// <param name="publicId">The stored identifier of the game type.</param>
     /// <param name="name">The stored display name of the game type.</param>

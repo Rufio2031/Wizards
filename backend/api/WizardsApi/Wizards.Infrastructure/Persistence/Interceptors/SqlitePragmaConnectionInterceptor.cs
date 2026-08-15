@@ -9,23 +9,12 @@ namespace Wizards.Infrastructure.Persistence.Interceptors;
 /// Applies the SQLite pragmas the API depends on to every connection as it is opened.
 /// </summary>
 /// <remarks>
-/// <para>
-/// SQLite defaults to a rollback journal, which takes an exclusive lock over the whole database file
-/// for the duration of a write and surfaces as <c>SQLITE_BUSY</c> on concurrent requests. Write-ahead
-/// logging lets readers proceed alongside a single writer instead.
-/// </para>
-/// <para>
-/// Microsoft.Data.Sqlite's pool caches the underlying <c>sqlite3</c> handle, so pragmas do survive a
-/// pooled close and reopen. The pragmas are still reissued on every open because every newly created
-/// handle starts at <c>busy_timeout=0</c>, and the pool creates handles at arbitrary times as demand
-/// rises, so there is no single point at which applying them once would cover every connection.
-/// Reapplying is idempotent and costs an in-process call.
-/// </para>
-/// <para>
-/// Failures are logged rather than thrown: the connection is already open and usable by the time this
-/// runs, so throwing would escape before Entity Framework finishes its bookkeeping and could leak a
-/// connection that never returns to the pool.
-/// </para>
+/// SQLite's default rollback journal locks the whole file for a write and surfaces as
+/// <c>SQLITE_BUSY</c>, so every connection is put into write-ahead logging; the pragmas are
+/// reissued on every open because Microsoft.Data.Sqlite's pool creates handles at arbitrary times
+/// and each starts at <c>busy_timeout=0</c>. Failures are logged rather than thrown, since the
+/// connection is already open and throwing would leak it before Entity Framework finishes its
+/// bookkeeping.
 /// </remarks>
 /// <param name="logger">The logger used to report pragmas that could not be applied or verified.</param>
 /// <param name="busyTimeout">

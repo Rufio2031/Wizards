@@ -6,9 +6,8 @@ namespace Wizards.Domain.Entities;
 /// One of the fixed values a <see cref="SettingType.Enum"/> setting allows.
 /// </summary>
 /// <remarks>
-/// The value doubles as the label the organizer is shown, so it is stored in the casing it should be
-/// presented in. A setting only carries options when it is an enum; every other kind states what it
-/// allows through its range instead.
+/// The value doubles as the label shown to the organizer, so it is stored in the casing it should
+/// be presented in.
 /// </remarks>
 public class GameTypeSettingOption
 {
@@ -45,10 +44,6 @@ public class GameTypeSettingOption
     /// <summary>
     /// Rebuilds an option from already-persisted state, applying no validation.
     /// </summary>
-    /// <remarks>
-    /// This is for persistence mapping only. Callers creating an option for the first time must use
-    /// <see cref="Create(string)"/>, which enforces the entity's invariants.
-    /// </remarks>
     /// <param name="id">The stored primary key of the option.</param>
     /// <param name="value">The stored value of the option.</param>
     /// <returns>The rehydrated option.</returns>

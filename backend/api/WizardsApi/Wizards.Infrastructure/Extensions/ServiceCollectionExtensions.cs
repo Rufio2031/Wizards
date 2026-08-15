@@ -32,10 +32,8 @@ public static class ServiceCollectionExtensions
     /// for contended write locks.
     /// </summary>
     /// <remarks>
-    /// The lock wait is read from <c>Sqlite:BusyTimeoutSeconds</c> and defaults to 30 seconds when the
-    /// key is absent. Zero is honored and means a contended write fails immediately rather than
-    /// waiting. Pragma application is best effort and is logged rather than thrown if it fails, so a
-    /// successful call does not by itself guarantee write-ahead logging is active.
+    /// Pragma application is best effort and is logged rather than thrown, so a successful call does
+    /// not by itself guarantee write-ahead logging is active.
     /// </remarks>
     /// <param name="services">The container to register the persistence services into.</param>
     /// <param name="configuration">

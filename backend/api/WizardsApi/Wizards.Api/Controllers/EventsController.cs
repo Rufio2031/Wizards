@@ -69,7 +69,6 @@ public class EventsController(
     }
 
     /// <summary>Downloads an event as a calendar invite.</summary>
-    /// <remarks>The invite states the event as it is now.</remarks>
     /// <param name="eventId">The identifier of the event to describe.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>

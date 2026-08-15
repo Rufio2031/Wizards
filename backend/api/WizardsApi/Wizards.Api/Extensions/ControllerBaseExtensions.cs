@@ -15,11 +15,6 @@ public static class ControllerBaseExtensions
     /// <summary>
     /// Reports an application failure as the HTTP response its kind calls for.
     /// </summary>
-    /// <remarks>
-    /// The single place the API decides which status code an <see cref="ErrorKind"/> earns, so the
-    /// Application layer never states one. A not-found failure produces the framework's bare response
-    /// rather than one describing the field, matching every other 404 the API returns.
-    /// </remarks>
     /// <param name="controller">The controller the response is produced on.</param>
     /// <param name="error">The failure to report.</param>
     /// <returns>The response carrying the failure.</returns>

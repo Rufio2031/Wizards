@@ -9,16 +9,8 @@ namespace Wizards.Domain.Entities;
 /// the values it will accept.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Settings are what make a game type's rules data rather than code: registering a game that is
-/// played differently is a matter of listing different settings, not of adding fields. A setting
-/// states what it allows and answers whether a chosen value satisfies it, so no caller has to read
-/// its range and reimplement the check.
-/// </para>
-/// <para>
-/// Every value is carried as text, whatever the setting's kind, because the settings a game type
-/// exposes are not known at compile time and so cannot share a typed shape.
-/// </para>
+/// A setting answers whether a chosen value satisfies it, so no caller reads its bounds and options
+/// and reimplements the check.
 /// </remarks>
 public class GameTypeSetting
 {
@@ -151,10 +143,6 @@ public class GameTypeSetting
     /// <summary>
     /// Rebuilds a setting from already-persisted state, applying no validation.
     /// </summary>
-    /// <remarks>
-    /// This is for persistence mapping only. Callers creating a setting for the first time must use
-    /// <see cref="Create"/>, which enforces the entity's invariants.
-    /// </remarks>
     /// <returns>The rehydrated setting.</returns>
     public static GameTypeSetting Reconstitute(
         int id,
@@ -182,11 +170,7 @@ public class GameTypeSetting
     /// <summary>
     /// Reports whether a chosen value is one this setting allows.
     /// </summary>
-    /// <remarks>
-    /// The range a setting permits is its own rule, so it is answered here rather than read off by
-    /// whoever is doing the choosing. Surrounding whitespace is ignored, and an enum value is matched
-    /// without regard to case.
-    /// </remarks>
+    /// <remarks>Surrounding whitespace is ignored, and an enum value is matched without regard to case.</remarks>
     /// <param name="value">The chosen value, as text.</param>
     /// <returns>
     /// <see langword="true"/> when the value satisfies this setting, otherwise
@@ -217,9 +201,7 @@ public class GameTypeSetting
     /// Reduces an accepted value to the single form this setting stores it in.
     /// </summary>
     /// <remarks>
-    /// Storing one form per value means two events that chose the same thing compare equal, however
-    /// the value was spelled on the way in. The caller must already have established that the value is
-    /// accepted; anything else is returned trimmed and otherwise untouched.
+    /// A value <see cref="Accepts"/> would reject is returned trimmed and otherwise untouched.
     /// </remarks>
     /// <param name="value">The chosen value, which <see cref="Accepts"/> has already approved.</param>
     /// <returns>The value as this setting stores it.</returns>
@@ -249,10 +231,6 @@ public class GameTypeSetting
     /// <summary>
     /// States what this setting allows, phrased to complete a sentence such as "player count must be".
     /// </summary>
-    /// <remarks>
-    /// Written for the organizer who chose a value this setting turned down, so it names the bounds
-    /// and options rather than the rule that rejected them.
-    /// </remarks>
     /// <returns>The description of the allowed values.</returns>
     internal string DescribeAllowedValues() =>
         this.Type switch

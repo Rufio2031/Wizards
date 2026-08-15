@@ -5,10 +5,7 @@ namespace Wizards.Domain.Models;
 /// <summary>
 /// The window, ordering and date range a page of events is read over.
 /// </summary>
-/// <remarks>
-/// Both bounds must already be UTC instants, which construction enforces. A range that selects
-/// nothing is a valid query and yields an empty page.
-/// </remarks>
+/// <remarks>A range that selects nothing is a valid query and yields an empty page.</remarks>
 /// <param name="Skip">
 /// The number of events to pass over before the page begins. Zero or greater. Counted within the
 /// date range, not within the whole collection.

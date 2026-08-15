@@ -13,7 +13,6 @@ public class GameTypesController(IGameTypesService gameTypesService) : Controlle
     /// <summary>
     /// Retrieves a single game type by its identifier, together with the settings it exposes.
     /// </summary>
-    /// <remarks>A successful response is marked cacheable by any cache for 60 seconds.</remarks>
     /// <param name="gameTypeId">The identifier of the game type to retrieve.</param>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
     /// <returns>The matching game type.</returns>
@@ -50,7 +49,6 @@ public class GameTypesController(IGameTypesService gameTypesService) : Controlle
     /// <summary>
     /// Retrieves every registered game type, each together with the settings it exposes.
     /// </summary>
-    /// <remarks>A successful response is marked cacheable by any cache for 60 seconds.</remarks>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
     /// <returns>The registered game types, ordered by name.</returns>
     /// <response code="200">The game types were retrieved.</response>

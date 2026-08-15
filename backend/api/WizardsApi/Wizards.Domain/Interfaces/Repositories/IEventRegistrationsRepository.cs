@@ -8,9 +8,8 @@ public interface IEventRegistrationsRepository
     /// Counts the registrations held against a single event.
     /// </summary>
     /// <remarks>
-    /// The answer is only true for the instant it was read, so a caller checking room before staging a
-    /// registration still races anything registering alongside it. The store enforces the same limit
-    /// on the way in, which settles that race.
+    /// The store enforces the same limit on insert, so a caller must not treat this count as the gate
+    /// on whether a registration will be accepted.
     /// </remarks>
     /// <param name="event">The event to count registrations for, as read from the store.</param>
     /// <param name="cancellationToken">Cancels the read before it completes.</param>

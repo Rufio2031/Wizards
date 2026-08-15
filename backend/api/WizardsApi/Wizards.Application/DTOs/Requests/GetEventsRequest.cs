@@ -68,7 +68,6 @@ public record GetEventsRequest(
     public DateTime? StartingBeforeUtc => this.StartingBefore.ToUtcInstant();
 
     /// <summary>Reports an inverted date range.</summary>
-    /// <remarks>Equal bounds select nothing and are accepted.</remarks>
     /// <param name="validationContext">The context the request is being validated in.</param>
     /// <returns>A failure naming both bounds when the range is inverted, and nothing otherwise.</returns>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

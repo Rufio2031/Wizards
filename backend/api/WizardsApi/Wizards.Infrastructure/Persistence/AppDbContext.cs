@@ -30,9 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     /// <inheritdoc />
     /// <remarks>
-    /// Applies <see cref="UtcDateTimeConverter"/> to every <see cref="DateTime"/> and nullable
-    /// <see cref="DateTime"/> property in the model, so no mapping site has to remember to restore the
-    /// kind of an instant it reads.
+    /// The convention reaches nullable <see cref="DateTime"/> properties as well as non-nullable ones.
     /// </remarks>
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -178,11 +176,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// in both directions.
     /// </summary>
     /// <remarks>
-    /// Only the clock reading survives a round trip through SQLite, so a value read back is UTC in
-    /// substance but <see cref="DateTimeKind.Unspecified"/> in kind. Restoring the kind on the way out
-    /// keeps the promise the domain entities make that their instants are always UTC, which they
-    /// themselves enforce on every other path in. Nothing is converted on the way to the database,
-    /// because a value arriving here is already UTC and reinterpreting it would shift it.
+    /// SQLite does not preserve <see cref="DateTimeKind"/>, so the kind is restored on the way out.
+    /// Nothing is converted on the way in, because a value arriving here is already UTC and
+    /// reinterpreting it would shift it.
     /// </remarks>
     private sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
         utcInstant => utcInstant,

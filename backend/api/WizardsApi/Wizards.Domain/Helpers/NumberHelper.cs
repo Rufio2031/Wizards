@@ -5,11 +5,6 @@ namespace Wizards.Domain.Helpers;
 /// <summary>
 /// Converts whole numbers to and from text using the invariant culture.
 /// </summary>
-/// <remarks>
-/// Values that are stored or transmitted as text are read back by machines rather than by whoever
-/// wrote them, so both directions ignore the current culture. Parsing with a culture that groups or
-/// separates differently would read the same stored text as two different numbers.
-/// </remarks>
 internal static class NumberHelper
 {
     /// <summary>

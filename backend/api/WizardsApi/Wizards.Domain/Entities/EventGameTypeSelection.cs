@@ -44,10 +44,6 @@ public class EventGameTypeSelection
     }
 
     /// <summary>Rebuilds a selection from already-persisted state, applying no validation.</summary>
-    /// <remarks>
-    /// This is for persistence mapping only, and a new selection must come from
-    /// <see cref="Create(GameTypeSetting, string)"/>.
-    /// </remarks>
     /// <param name="id">The stored primary key of the selection.</param>
     /// <param name="setting">The stored game type setting the value was chosen for, already rehydrated.</param>
     /// <param name="value">The stored value, as text.</param>

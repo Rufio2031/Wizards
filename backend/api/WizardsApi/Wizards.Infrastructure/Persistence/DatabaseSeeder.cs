@@ -11,22 +11,9 @@ namespace Wizards.Infrastructure.Persistence;
 /// Writes the reference data the application cannot run without into the Wizards database.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Seeding is idempotent and is expected to run on every host start, including against a database
-/// that is already populated: each entity type is compared against what is already stored and only
-/// the missing rows are inserted.
-/// </para>
-/// <para>
-/// Each entity type is inserted in a single save, so its rows either all land or none of them do,
-/// and a failure leaves that type exactly as it was. Nothing is caught here, so the caller decides
-/// what a failure means for the host.
-/// </para>
-/// <para>
-/// The read of what is already stored and the insert of what is missing are not one transaction,
-/// which is safe only because a single host owns the database file. Two hosts seeding the same file
-/// concurrently can both observe the same missing row and race to insert it, and the loser fails on
-/// the unique index rather than skipping the row.
-/// </para>
+/// Seeding is idempotent and runs on every host start. The read of what is stored and the insert of
+/// what is missing are not one transaction, which is safe only because a single host owns the
+/// database file; two hosts seeding concurrently race, and the loser fails on the unique index.
 /// </remarks>
 /// <param name="dbContext">The context to write the reference data through.</param>
 /// <param name="logger">Records what was inserted, so an unexpected insert on a warm database is visible.</param>
@@ -84,9 +71,8 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// runs so that a seed on any day places each one the same distance from the day it ran.
     /// </summary>
     /// <remarks>
-    /// Between them these cover the three states the registration screens have to render: an event
-    /// with room, one that is full, and one nobody has registered for. One sample is dated before the
-    /// seed runs, so that whatever only lists events still to come can be seen leaving it out.
+    /// Between them these cover an event with room, one that is full, one nobody has registered for,
+    /// and one dated before the seed runs so an upcoming-only read can be seen leaving it out.
     /// </remarks>
     private static readonly IReadOnlyList<SampleEvent> SampleEvents =
     [
@@ -141,9 +127,8 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// Inserts every piece of reference data that is not already stored.
     /// </summary>
     /// <remarks>
-    /// Seed values that name the same thing collapse to a single row. Names are compared without
-    /// regard to case or surrounding whitespace, so a hand-maintained source listing a name twice
-    /// under two spellings inserts it once rather than failing on the unique index.
+    /// Seed values naming the same thing collapse to a single row, compared without regard to case or
+    /// surrounding whitespace.
     /// </remarks>
     /// <param name="cancellationToken">Cancels the seed before it completes.</param>
     /// <returns>A task that completes once the inserted rows, if any, are durable.</returns>
@@ -239,10 +224,8 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// no events at all.
     /// </summary>
     /// <remarks>
-    /// An event has no natural key, and two events may legitimately share a name, so there is nothing
-    /// to compare a sample against to decide whether it is already stored. Seeding only into an empty
-    /// table is what makes this safe to run on every start: a database with any event in it, including
-    /// one left after the samples were deleted on purpose, is left exactly as it is.
+    /// An event has no natural key to compare a sample against, so an empty table is the only safe test
+    /// for whether the samples are already stored.
     /// </remarks>
     private async Task SeedSampleEventsAsync(CancellationToken cancellationToken)
     {
@@ -317,9 +300,8 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
     /// Builds the event a sample describes, dated from the instant the whole seed was read.
     /// </summary>
     /// <remarks>
-    /// A sample dated before the seed ran is rebuilt rather than created, because an event that has
-    /// already begun is a state the entity refuses to be created in and only ever reaches by being read
-    /// back. It is built with no key, exactly as a created one is, so the database still assigns it.
+    /// A sample dated before the seed ran is rebuilt rather than created, because
+    /// <see cref="Event.Create"/> refuses an event that has already begun.
     /// </remarks>
     /// <param name="sampleEvent">The sample to build.</param>
     /// <param name="gameType">The game type the sample names, already rehydrated with its settings.</param>
