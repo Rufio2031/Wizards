@@ -11,6 +11,11 @@ const NETWORK_PROBLEM: ProblemDetails = {
   detail: 'The API could not be reached.',
 }
 
+const MALFORMED_BODY_PROBLEM: ProblemDetails = {
+  title: 'Malformed response',
+  detail: 'The API returned a body that could not be read as JSON.',
+}
+
 /**
  * True when a rejection came from a caller-initiated abort rather than a
  * failure. Callers use it to stay silent instead of showing an error.
@@ -34,7 +39,15 @@ async function readProblemDetails(response: Response): Promise<ProblemDetails> {
     return {}
   }
 
-  return (await response.json()) as ProblemDetails
+  try {
+    return (await response.json()) as ProblemDetails
+  } catch (caught) {
+    if (isAbortError(caught)) {
+      throw caught
+    }
+    
+    return {}
+  }
 }
 
 async function request<TResponse>(
@@ -73,9 +86,19 @@ async function request<TResponse>(
     throw new ApiError(response.status, await readProblemDetails(response))
   }
 
-  const text = await response.text()
+  try {
+    const text = await response.text()
 
-  return text.length === 0 ? undefined : (JSON.parse(text) as TResponse)
+    return text.length === 0 ? undefined : (JSON.parse(text) as TResponse)
+  } catch (caught) {
+    if (isAbortError(caught)) {
+      throw caught
+    }
+
+    throw new ApiError(response.status, MALFORMED_BODY_PROBLEM, {
+      cause: caught,
+    })
+  }
 }
 
 /**
@@ -98,22 +121,6 @@ export const httpClient = {
     options?: RequestOptions,
   ): Promise<TResponse | undefined> {
     return request<TResponse>('POST', path, body, options)
-  },
-
-  put<TResponse>(
-    path: string,
-    body: unknown,
-    options?: RequestOptions,
-  ): Promise<TResponse | undefined> {
-    return request<TResponse>('PUT', path, body, options)
-  },
-
-  patch<TResponse>(
-    path: string,
-    body: unknown,
-    options?: RequestOptions,
-  ): Promise<TResponse | undefined> {
-    return request<TResponse>('PATCH', path, body, options)
   },
 
   delete<TResponse = void>(

@@ -5,8 +5,10 @@ import type { Page } from '@/services/http/pagination'
 import type {
   CreateEventRequest,
   CreateRegistrationRequest,
+  EventSortField,
   GameEvent,
   Registration,
+  SortDirection,
 } from '../types/event'
 
 const EVENTS_PATH = '/events'
@@ -14,18 +16,45 @@ const EVENTS_PATH = '/events'
 export interface ListEventsParams {
   skip: number
   take: number
+  sortBy?: EventSortField
+  sortDirection?: SortDirection
+  startingOnOrAfter?: Date
+  startingBefore?: Date
 }
 
 /** The only place event route paths are known. */
 export const eventsApi = {
   async list(
-    { skip, take }: ListEventsParams,
+    {
+      skip,
+      take,
+      sortBy,
+      sortDirection,
+      startingOnOrAfter,
+      startingBefore,
+    }: ListEventsParams,
     options?: RequestOptions,
   ): Promise<Page<GameEvent>> {
     const query = new URLSearchParams({
       skip: String(skip),
       take: String(take),
     })
+
+    if (sortBy) {
+      query.set('sortBy', sortBy)
+    }
+
+    if (sortDirection) {
+      query.set('sortDirection', sortDirection)
+    }
+
+    if (startingOnOrAfter) {
+      query.set('startingOnOrAfter', startingOnOrAfter.toISOString())
+    }
+
+    if (startingBefore) {
+      query.set('startingBefore', startingBefore.toISOString())
+    }
 
     const page = await httpClient.get<Page<GameEvent>>(
       `${EVENTS_PATH}?${query}`,

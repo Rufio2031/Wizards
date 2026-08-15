@@ -3,7 +3,9 @@ export interface GameType {
   name: string
 }
 
-// The API omits nulls, so `description` is absent, never null.
+export type EventSortField = 'StartDateTime'
+export type SortDirection = 'Ascending' | 'Descending'
+
 export interface GameEvent {
   eventId: string
   name: string
