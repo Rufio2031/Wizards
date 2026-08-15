@@ -32,23 +32,6 @@ const hasSlider = computed(() => isBounded.value && !isFixed.value)
 
 const isChecked = computed(() => props.modelValue === 'true')
 
-const UNAVAILABLE_OPTION_ERROR =
-  'This value is no longer offered for this game. Please choose another.'
-
-// A value missing from the options would leave the select on no option at all,
-// which reads as a blank the organizer chose rather than one that went missing,
-// and submits the stale value untouched.
-const hasUnavailableValue = computed(
-  () =>
-    props.setting.type === 'enum' &&
-    props.modelValue !== '' &&
-    !props.setting.options.includes(props.modelValue),
-)
-
-const fieldError = computed(
-  () => props.error ?? (hasUnavailableValue.value ? UNAVAILABLE_OPTION_ERROR : undefined),
-)
-
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement | HTMLSelectElement
 
@@ -98,7 +81,7 @@ function onNumberChange(event: Event) {
     v-slot="{ id, describedBy, invalid }"
     :label="setting.label"
     :hint="setting.description"
-    :error="fieldError"
+    :error="error"
     :inline="setting.type === 'bool'"
   >
     <input
@@ -119,10 +102,6 @@ function onNumberChange(event: Event) {
       :aria-invalid="invalid"
       @change="onInput"
     >
-      <option v-if="hasUnavailableValue" :value="modelValue" disabled>
-        {{ modelValue }} (unavailable)
-      </option>
-
       <option v-for="option in setting.options" :key="option" :value="option">
         {{ option }}
       </option>

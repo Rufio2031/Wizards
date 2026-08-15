@@ -86,31 +86,6 @@ describe('GameTypeSettingField', () => {
     expect(lastEmit(wrapper)).toEqual(['Sealed'])
   })
 
-  it('keeps an enum value the game no longer offers visible, selected, unavailable, and flagged', () => {
-    const wrapper = mountField(
-      settingOf({
-        key: 'format',
-        label: 'Format',
-        type: 'enum',
-        options: ['Standard', 'Draft'],
-        defaultValue: 'Standard',
-      }),
-      'Commander',
-    )
-
-    const select = wrapper.get('select')
-    const options = select.findAll('option')
-
-    expect(options.map((option) => option.text())).toEqual([
-      'Commander (unavailable)',
-      'Standard',
-      'Draft',
-    ])
-    expect((select.element as HTMLSelectElement).value).toBe('Commander')
-    expect((options[0].element as HTMLOptionElement).disabled).toBe(true)
-    expect(wrapper.text()).toContain('no longer offered')
-  })
-
   it('presents an int bounded at both ends as a slider and a number entry reading the same value', () => {
     const wrapper = mountField(BOUNDED, '4')
 

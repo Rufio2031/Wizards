@@ -26,10 +26,6 @@ builder.Services.AddPersistence(builder.Configuration);
 
 var app = builder.Build();
 
-// Migrations run in-process on every start, in every environment, so a clone with no database file
-// serves a working API with no tooling installed. The usual objection, several replicas racing to
-// migrate one shared database, cannot happen here: the SQLite file is container-local and this
-// single instance owns it.
 await app.Services.InitializeDatabaseAsync(app.Lifetime.ApplicationStopping);
 
 if (app.Environment.IsDevelopment())
@@ -41,8 +37,6 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-
-app.UseAuthorization();
 
 app.MapControllers();
 

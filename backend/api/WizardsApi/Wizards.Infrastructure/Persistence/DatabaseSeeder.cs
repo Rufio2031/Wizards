@@ -81,11 +81,12 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
 
     /// <summary>
     /// The events written when sample data is asked for, described relative to the moment the seed
-    /// runs so that a seed on any day produces events that have not already happened.
+    /// runs so that a seed on any day places each one the same distance from the day it ran.
     /// </summary>
     /// <remarks>
     /// Between them these cover the three states the registration screens have to render: an event
-    /// with room, one that is full, and one nobody has registered for.
+    /// with room, one that is full, and one nobody has registered for. One sample is dated before the
+    /// seed runs, so that whatever only lists events still to come can be seen leaving it out.
     /// </remarks>
     private static readonly IReadOnlyList<SampleEvent> SampleEvents =
     [
@@ -120,7 +121,18 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             TimeSpan.FromHours(4),
             6,
             null,
-            [])
+            []),
+
+        new SampleEvent(
+            "Past Event: Draft Night",
+            "This event has already finished and should not appear among upcoming events.",
+            "The Wizard's Table, 412 Main Street",
+            "Magic: The Gathering",
+            TimeSpan.FromDays(-3),
+            TimeSpan.FromHours(3),
+            8,
+            new Dictionary<string, string> { ["format"] = "Draft", ["deckSize"] = "40" },
+            ["Ada Lovelace", "Grace Hopper", "Alan Turing"])
     ];
 
     private static readonly StringComparer GameTypeNameComparer = StringComparer.OrdinalIgnoreCase;
@@ -255,16 +267,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
                     $"Sample event '{sampleEvent.Name}' names the game type '{sampleEvent.GameTypeName}', which is not seeded.");
             }
 
-            Event @event = Event.Create(
-                sampleEvent.Name,
-                sampleEvent.Description,
-                sampleEvent.Location,
-                gameType,
-                seededAt + sampleEvent.StartsIn,
-                seededAt + sampleEvent.StartsIn + sampleEvent.Runs,
-                sampleEvent.RegistrationLimit,
-                gameType.Validate(sampleEvent.Selections?.Select(
-                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value))));
+            Event @event = BuildSampleEvent(sampleEvent, gameType, seededAt);
 
             Records.Event eventRecord = @event.ToRecord();
 
@@ -309,6 +312,53 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             insertedRegistrations);
     }
 
+    /// <summary>
+    /// Builds the event a sample describes, dated from the instant the whole seed was read.
+    /// </summary>
+    /// <remarks>
+    /// A sample dated before the seed ran is rebuilt rather than created, because an event that has
+    /// already begun is a state the entity refuses to be created in and only ever reaches by being read
+    /// back. It is built with no key, exactly as a created one is, so the database still assigns it.
+    /// </remarks>
+    /// <param name="sampleEvent">The sample to build.</param>
+    /// <param name="gameType">The game type the sample names, already rehydrated with its settings.</param>
+    /// <param name="seededAt">The instant every sample in this seed is dated from.</param>
+    /// <returns>The event entity, carrying one selection per setting its game type exposes.</returns>
+    private static Event BuildSampleEvent(SampleEvent sampleEvent, GameType gameType, DateTime seededAt)
+    {
+        DateTime startDateTime = seededAt + sampleEvent.StartsIn;
+        DateTime endDateTime = startDateTime + sampleEvent.Runs;
+
+        IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(
+            sampleEvent.Selections?.Select(
+                selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+
+        if (sampleEvent.StartsIn < TimeSpan.Zero)
+        {
+            return Event.Reconstitute(
+                0,
+                Guid.CreateVersion7(),
+                sampleEvent.Name,
+                sampleEvent.Description,
+                sampleEvent.Location,
+                startDateTime,
+                endDateTime,
+                gameType,
+                sampleEvent.RegistrationLimit,
+                selections);
+        }
+
+        return Event.Create(
+            sampleEvent.Name,
+            sampleEvent.Description,
+            sampleEvent.Location,
+            gameType,
+            startDateTime,
+            endDateTime,
+            sampleEvent.RegistrationLimit,
+            selections);
+    }
+
     private async Task<Dictionary<string, GameType>> ReadGameTypesByNameAsync(CancellationToken cancellationToken)
     {
         List<Records.GameType> storedGameTypes = await dbContext.GameTypes
@@ -327,7 +377,10 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
         return gameTypesByName;
     }
 
-    /// <param name="StartsIn">How long after the seed runs the event begins.</param>
+    /// <param name="StartsIn">
+    /// How long after the seed runs the event begins. Negative for an event that had already begun by
+    /// the time it was seeded.
+    /// </param>
     /// <param name="Runs">How long the event lasts once it has begun.</param>
     /// <param name="Selections">
     /// The settings to settle for the event, or <see langword="null"/> to leave every setting the game
