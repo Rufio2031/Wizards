@@ -52,6 +52,12 @@ public class Event
     /// <summary>The registration limit for the event.</summary>
     public int RegistrationLimit { get; private set; }
 
+    /// <summary>
+    /// Gets whether the event has begun, after which it accepts no further registrations. Read against
+    /// the current instant, so it turns true on its own once <see cref="StartDateTime"/> passes.
+    /// </summary>
+    public bool IsRegistrationClosed => DateTime.UtcNow >= this.StartDateTime;
+
     private List<EventGameTypeSelection> selections = [];
 
     private Event() { }

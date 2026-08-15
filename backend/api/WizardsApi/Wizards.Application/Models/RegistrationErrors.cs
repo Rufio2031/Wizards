@@ -28,6 +28,18 @@ public static class RegistrationErrors
         "This event is full.");
 
     /// <summary>
+    /// The event has begun, so nothing was written.
+    /// </summary>
+    /// <remarks>
+    /// The request itself is well formed, so this reports the state of the event rather than a fault in
+    /// the request. Unlike a full event, resending it never succeeds.
+    /// </remarks>
+    public static readonly ApplicationError RegistrationClosed = new(
+        ErrorKind.Conflict,
+        string.Empty,
+        "Registration for this event has closed.");
+
+    /// <summary>
     /// Reports that the supplied details break a rule about what makes a valid registration, so
     /// nothing was written.
     /// </summary>

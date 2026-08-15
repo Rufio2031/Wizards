@@ -22,9 +22,10 @@ public interface IRegistrationsService
     /// <returns>
     /// The registration once it is durable, or the reason nothing was written:
     /// <see cref="RegistrationErrors.EventNotFound"/> when no event carries the identifier,
-    /// <see cref="RegistrationErrors.EventFull"/> when the event has taken every registration it
-    /// accepts, or a <see cref="RegistrationErrors.Invalid"/> failure when the supplied details break
-    /// a rule about what makes a valid registration.
+    /// a <see cref="RegistrationErrors.Invalid"/> failure when the supplied details break a rule about
+    /// what makes a valid registration, <see cref="RegistrationErrors.RegistrationClosed"/> when the
+    /// event has begun, or <see cref="RegistrationErrors.EventFull"/> when the event has taken every
+    /// registration it accepts.
     /// </returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="request"/> is <see langword="null"/>.

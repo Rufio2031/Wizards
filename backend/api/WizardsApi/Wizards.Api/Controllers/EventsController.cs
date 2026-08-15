@@ -73,7 +73,8 @@ public class EventsController(
     /// <param name="eventId">The identifier of the event to describe.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>
-    /// The invite, offered as a download named after the event that calendar clients import directly.
+    /// The invite, offered as a download named after the event's identifier that calendar clients
+    /// import directly.
     /// </returns>
     /// <response code="200">The invite was built.</response>
     /// <response code="404">No event carries the supplied identifier.</response>

@@ -15,10 +15,7 @@ namespace Wizards.Application.Services;
 /// </summary>
 /// <param name="eventsRepository">Reads the event an invite describes.</param>
 /// <param name="settings">The deployment-specific values every invite carries.</param>
-/// <param name="timeProvider">
-/// Reads the instant an invite is stamped with. Supplied rather than read from the system clock so the
-/// same event yields the same invite on every call.
-/// </param>
+/// <param name="timeProvider">Reads the instant an invite is stamped with.</param>
 internal sealed class CalendarInviteService(
     IEventsRepository eventsRepository,
     CalendarInviteSettings settings,
@@ -54,10 +51,10 @@ internal sealed class CalendarInviteService(
     {
         CalendarEvent calendarEvent = new()
         {
-            Uid = $"{@event.PublicId}@{settings.UidDomain}",
-            Summary = @event.Name,
-            Location = @event.Location,
-            Description = BuildDescription(@event),
+            Uid = EscapeBackslashes($"{@event.PublicId}@{settings.UidDomain}"),
+            Summary = EscapeBackslashes(@event.Name),
+            Location = EscapeBackslashes(@event.Location),
+            Description = EscapeBackslashes(BuildDescription(@event)),
             DtStart = ToCalendarDateTime(@event.StartDateTime),
             DtEnd = ToCalendarDateTime(@event.EndDateTime),
             DtStamp = ToCalendarDateTime(timeProvider.GetUtcNow().UtcDateTime),
@@ -79,6 +76,13 @@ internal sealed class CalendarInviteService(
 
         return new CalendarInvite(BuildFileName(@event), CalendarInvite.MediaType, content);
     }
+
+    /// <summary>
+    /// Escapes a text value's backslashes for RFC 5545, which Ical.Net 5.2.3 leaves raw while escaping
+    /// commas, semicolons and newlines itself. Run before serialization so the two passes compose.
+    /// </summary>
+    private static string EscapeBackslashes(string value) =>
+        value.Replace(@"\", @"\\", StringComparison.Ordinal);
 
     /// <summary>
     /// States the game alongside whatever the organizer wrote.

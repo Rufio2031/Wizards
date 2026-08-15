@@ -69,8 +69,8 @@ public class RegistrationsController(IRegistrationsService registrationsService)
     /// No event carries the supplied identifier.
     /// </response>
     /// <response code="409">
-    /// The event has taken every registration it accepts. The request is well formed and resending it
-    /// unchanged succeeds once a seat frees up.
+    /// The event has begun, or has taken every registration it accepts. The request is well formed;
+    /// resending it unchanged succeeds once a seat frees up, but never once the event has begun.
     /// </response>
     [HttpPost]
     [ProducesResponseType<RegistrationResponse>(StatusCodes.Status200OK)]

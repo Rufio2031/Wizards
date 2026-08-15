@@ -3,9 +3,10 @@ import { isApiError } from './ApiError'
 /**
  * A failed call's messages, split by whether the API blamed a particular field.
  *
- * Only messages the API attributed to a key are carried. `ApiError.message`
- * never appears here, so a caller can render these while still keeping raw
- * server text out of the page.
+ * Only messages the API wrote for a person are carried: `ApiError.message` never
+ * appears, and the serializer's own words are reduced to the path they were
+ * about, so a caller can render everything here without putting the API's
+ * internals in front of a user.
  */
 export interface ApiFailure {
   /** Messages keyed by the field each is about, as the API named it. */
@@ -17,6 +18,24 @@ export interface ApiFailure {
    * caller supplies its own copy.
    */
   formMessages: string[]
+
+  /**
+   * Values the API could not read at all, named by their path in the body that
+   * was sent, so a caller can say so in its own words. The serializer's message
+   * is dropped: it describes types and byte offsets, never the value typed.
+   */
+  unreadableFields: string[]
+}
+
+/** The API names a value it could not parse by its JSON path, as `$.startDateTime`. */
+const JSON_PATH_ROOT = '$'
+
+function isJsonPath(key: string): boolean {
+  return key === JSON_PATH_ROOT || key.startsWith(`${JSON_PATH_ROOT}.`)
+}
+
+function toBodyPath(key: string): string {
+  return key.slice(JSON_PATH_ROOT.length + 1)
 }
 
 /**
@@ -34,16 +53,27 @@ export function toApiFailure(error: Error | null): ApiFailure | null {
 
   const fieldErrors: Record<string, string[]> = {}
   const formMessages: string[] = []
+  const unreadableFields: string[] = []
 
   if (isApiError(error)) {
-    for (const [key, messages] of Object.entries(error.errors)) {
+    const entries = Object.entries(error.errors)
+
+    // A body that failed to deserialize never reached validation, so once any key
+    // names a JSON path, the keys beside it are the binding artifacts that came
+    // with it, named after the action's own parameter rather than after anything
+    // the user typed.
+    const failedToDeserialize = entries.some(([key]) => isJsonPath(key))
+
+    for (const [key, messages] of entries) {
       if (key === '') {
         formMessages.push(...messages)
-      } else {
+      } else if (isJsonPath(key)) {
+        unreadableFields.push(toBodyPath(key))
+      } else if (!failedToDeserialize) {
         fieldErrors[key] = messages
       }
     }
   }
 
-  return { fieldErrors, formMessages }
+  return { fieldErrors, formMessages, unreadableFields }
 }

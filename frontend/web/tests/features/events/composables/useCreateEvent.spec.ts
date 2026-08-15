@@ -86,6 +86,30 @@ describe('useCreateEvent', () => {
     expect(failure.value).toEqual({
       fieldErrors: { name: ['Name is required.'] },
       formMessages: [],
+      unreadableFields: [],
+    })
+  })
+
+  it('names a value the API could not read, without its serializer text', async () => {
+    vi.mocked(eventsApi.create).mockRejectedValue(
+      new ApiError(400, {
+        title: 'One or more validation errors occurred.',
+        errors: {
+          '$.startDateTime': [
+            'The JSON value could not be converted to System.DateTimeOffset. Path: $.startDateTime | LineNumber: 0 | BytePositionInLine: 52.',
+          ],
+        },
+      }),
+    )
+
+    const { failure, create } = runInScope(() => useCreateEvent())
+
+    await expect(create({ ...request, startDateTime: 'the ides of March' })).resolves.toBeNull()
+
+    expect(failure.value).toEqual({
+      fieldErrors: {},
+      formMessages: [],
+      unreadableFields: ['startDateTime'],
     })
   })
 

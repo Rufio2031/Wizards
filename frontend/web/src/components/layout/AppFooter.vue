@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { APP_NAME } from '@/config/app'
+import { DEV_NAME } from '@/config/app'
 
 import AppContainer from './AppContainer.vue'
 
@@ -9,7 +9,7 @@ const year = new Date().getFullYear()
 <template>
   <footer class="app-footer">
     <AppContainer>
-      <p class="app-footer__text">{{ APP_NAME }} &middot; {{ year }}</p>
+      <p class="app-footer__text">{{ DEV_NAME }} &middot; {{ year }}</p>
     </AppContainer>
   </footer>
 </template>

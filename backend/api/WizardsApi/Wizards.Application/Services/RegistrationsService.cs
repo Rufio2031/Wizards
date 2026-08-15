@@ -41,15 +41,6 @@ internal sealed class RegistrationsService(
             return heldRegistration;
         }
 
-        int registrationCount = await registrationsRepository.CountRegistrationsAsync(
-            @event,
-            cancellationToken);
-
-        if (@event.IsFull(registrationCount))
-        {
-            return WriteResult<RegistrationResponse>.Failure(RegistrationErrors.EventFull);
-        }
-
         EventRegistration registration;
 
         try
@@ -60,6 +51,20 @@ internal sealed class RegistrationsService(
         {
             return WriteResult<RegistrationResponse>.Failure(
                 RegistrationErrors.Invalid(exception.Message, exception.Key));
+        }
+
+        if (@event.IsRegistrationClosed)
+        {
+            return WriteResult<RegistrationResponse>.Failure(RegistrationErrors.RegistrationClosed);
+        }
+
+        int registrationCount = await registrationsRepository.CountRegistrationsAsync(
+            @event,
+            cancellationToken);
+
+        if (@event.IsFull(registrationCount))
+        {
+            return WriteResult<RegistrationResponse>.Failure(RegistrationErrors.EventFull);
         }
 
         await registrationsRepository.AddRegistrationAsync(registration, cancellationToken);

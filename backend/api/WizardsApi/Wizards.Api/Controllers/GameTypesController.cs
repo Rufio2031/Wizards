@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
+using Wizards.Api.Filters;
 using Wizards.Application.DTOs.Responses;
 using Wizards.Application.Interfaces;
 
@@ -12,10 +13,7 @@ public class GameTypesController(IGameTypesService gameTypesService) : Controlle
     /// <summary>
     /// Retrieves a single game type by its identifier, together with the settings it exposes.
     /// </summary>
-    /// <remarks>
-    /// Cached for 60 seconds on the same terms as the collection, so a client that reads one game type
-    /// sees an edit to it no sooner than a client that reads them all.
-    /// </remarks>
+    /// <remarks>A successful response is marked cacheable by any cache for 60 seconds.</remarks>
     /// <param name="gameTypeId">The identifier of the game type to retrieve.</param>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
     /// <returns>The matching game type.</returns>
@@ -25,7 +23,7 @@ public class GameTypesController(IGameTypesService gameTypesService) : Controlle
     /// type and is reported the same way.
     /// </response>
     [HttpGet("{gameTypeId:guid}", Name = nameof(GetGameType))]
-    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
+    [SuccessResponseCache(durationSeconds: 60)]
     [ProducesResponseType<GameTypeTemplateResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GameTypeTemplateResponse>> GetGameType(
@@ -52,15 +50,12 @@ public class GameTypesController(IGameTypesService gameTypesService) : Controlle
     /// <summary>
     /// Retrieves every registered game type, each together with the settings it exposes.
     /// </summary>
-    /// <remarks>
-    /// The game types are cached for 60 seconds, so repeated requests within that time window may return the same result even if the underlying data has changed.
-    /// This is a rudimentary cache that is not invalidated when the underlying data changes.
-    /// </remarks>
+    /// <remarks>A successful response is marked cacheable by any cache for 60 seconds.</remarks>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
     /// <returns>The registered game types, ordered by name.</returns>
     /// <response code="200">The game types were retrieved.</response>
     [HttpGet]
-    [ResponseCache(Duration = 60, Location = ResponseCacheLocation.Any)]
+    [SuccessResponseCache(durationSeconds: 60)]
     [ProducesResponseType<IReadOnlyList<GameTypeTemplateResponse>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<GameTypeTemplateResponse>>> GetGameTypes(
         CancellationToken cancellationToken)

@@ -41,6 +41,20 @@ public sealed class RegistrationsServiceTests
     }
 
     [Fact]
+    public async Task AddRegistration_RequestIsNull_NamesTheRequestWithoutReadingTheEvent()
+    {
+        ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(
+            () => this.registrationsService.AddRegistration(
+                Guid.CreateVersion7(),
+                null!,
+                CancellationToken.None));
+
+        Assert.Equal("request", exception.ParamName);
+
+        await this.eventsRepository.DidNotReceiveWithAnyArgs().GetEventByPublicIdAsync(default, default);
+    }
+
+    [Fact]
     public async Task AddRegistration_EventIdIsEmpty_ThrowsArgumentExceptionWithoutReadingTheEvent()
     {
         await Assert.ThrowsAsync<ArgumentException>(() => this.registrationsService.AddRegistration(
@@ -49,6 +63,18 @@ public sealed class RegistrationsServiceTests
             CancellationToken.None));
 
         await this.eventsRepository.DidNotReceiveWithAnyArgs().GetEventByPublicIdAsync(default, default);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventIdIsEmpty_NamesTheEventIdentifier()
+    {
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+            () => this.registrationsService.AddRegistration(
+                Guid.Empty,
+                BuildRequest(),
+                CancellationToken.None));
+
+        Assert.Equal("eventId", exception.ParamName);
     }
 
     [Fact]
@@ -95,6 +121,45 @@ public sealed class RegistrationsServiceTests
     public async Task AddRegistration_EventIsFullAndAlreadyHoldsTheKey_ReturnsTheOriginalRegistrationRatherThanReportingTheEventFull()
     {
         Event @event = this.ScheduleEvent(registrationLimit: 4);
+
+        this.HoldRegistration(@event, "Ada Lovelace", IdempotencyKey);
+
+        this.registrationsRepository
+            .CountRegistrationsAsync(@event, Arg.Any<CancellationToken>())
+            .Returns(4);
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest(),
+            CancellationToken.None);
+
+        Assert.Null(result.Error);
+        Assert.Equal(new RegistrationResponse("Ada Lovelace"), result.Value);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegunAndAlreadyHoldsTheKey_ReturnsTheOriginalRegistrationRatherThanReportingRegistrationClosed()
+    {
+        Event @event = this.ScheduleStartedEvent();
+
+        this.HoldRegistration(@event, "Ada Lovelace", IdempotencyKey);
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest(),
+            CancellationToken.None);
+
+        Assert.Null(result.Error);
+        Assert.Equal(new RegistrationResponse("Ada Lovelace"), result.Value);
+
+        await this.registrationsRepository.DidNotReceiveWithAnyArgs().AddRegistrationAsync(default!, default);
+        await this.unitOfWork.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegunAndIsFullAndAlreadyHoldsTheKey_ReturnsTheOriginalRegistrationRatherThanReportingEitherConflict()
+    {
+        Event @event = this.ScheduleStartedEvent(registrationLimit: 4);
 
         this.HoldRegistration(@event, "Ada Lovelace", IdempotencyKey);
 
@@ -209,6 +274,77 @@ public sealed class RegistrationsServiceTests
         Assert.Equal("Name", result.Error.Key);
 
         await this.unitOfWork.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegunAndTheNameIsMissing_ReportsTheInvalidNameRatherThanRegistrationClosed()
+    {
+        Event @event = this.ScheduleStartedEvent();
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest("   "),
+            CancellationToken.None);
+
+        Assert.Null(result.Value);
+        Assert.NotNull(result.Error);
+        Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
+        Assert.Equal("Name", result.Error.Key);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegun_ReturnsRegistrationClosedWithoutWriting()
+    {
+        Event @event = this.ScheduleStartedEvent();
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest(),
+            CancellationToken.None);
+
+        Assert.Null(result.Value);
+        Assert.Equal(RegistrationErrors.RegistrationClosed, result.Error);
+
+        await this.registrationsRepository.DidNotReceiveWithAnyArgs().AddRegistrationAsync(default!, default);
+        await this.unitOfWork.DidNotReceiveWithAnyArgs().SaveChangesAsync(default);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegunWithRoomToSpare_StillReturnsRegistrationClosed()
+    {
+        Event @event = this.ScheduleStartedEvent(registrationLimit: 8);
+
+        this.registrationsRepository
+            .CountRegistrationsAsync(@event, Arg.Any<CancellationToken>())
+            .Returns(0);
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest(),
+            CancellationToken.None);
+
+        Assert.Null(result.Value);
+        Assert.Equal(RegistrationErrors.RegistrationClosed, result.Error);
+    }
+
+    [Fact]
+    public async Task AddRegistration_EventHasBegunAndIsFull_ReportsRegistrationClosedWithoutCountingRegistrations()
+    {
+        Event @event = this.ScheduleStartedEvent(registrationLimit: 4);
+
+        this.registrationsRepository
+            .CountRegistrationsAsync(@event, Arg.Any<CancellationToken>())
+            .Returns(4);
+
+        WriteResult<RegistrationResponse> result = await this.registrationsService.AddRegistration(
+            @event.PublicId,
+            BuildRequest(),
+            CancellationToken.None);
+
+        Assert.Null(result.Value);
+        Assert.Equal(RegistrationErrors.RegistrationClosed, result.Error);
+
+        await this.registrationsRepository.DidNotReceiveWithAnyArgs().CountRegistrationsAsync(default!, default);
     }
 
     [Fact]
@@ -368,6 +504,29 @@ public sealed class RegistrationsServiceTests
             GameType.Create("Magic: The Gathering"),
             start,
             start.AddHours(3),
+            registrationLimit);
+
+        this.eventsRepository
+            .GetEventByPublicIdAsync(@event.PublicId, Arg.Any<CancellationToken>())
+            .Returns(@event);
+
+        return @event;
+    }
+
+    // Create refuses a start that has passed, so an event that has already begun is rehydrated.
+    private Event ScheduleStartedEvent(int registrationLimit = 8)
+    {
+        DateTime start = DateTime.UtcNow.AddHours(-1);
+
+        Event @event = Event.Reconstitute(
+            1,
+            Guid.CreateVersion7(),
+            "Friday Night Magic",
+            null,
+            "The Back Room",
+            start,
+            start.AddHours(3),
+            GameType.Create("Magic: The Gathering"),
             registrationLimit);
 
         this.eventsRepository

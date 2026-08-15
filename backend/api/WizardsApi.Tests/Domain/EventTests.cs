@@ -570,7 +570,43 @@ public sealed class EventTests
         Assert.True(AnEventAccepting(4).IsFull(5));
     }
 
+    [Fact]
+    public void IsRegistrationClosed_StartHasPassed_ReturnsTrue()
+    {
+        Assert.True(AnEventStartingAt(DateTime.UtcNow.AddHours(-1)).IsRegistrationClosed);
+    }
+
+    [Fact]
+    public void IsRegistrationClosed_StartIsTheInstantRead_ReturnsTrue()
+    {
+        Assert.True(AnEventStartingAt(DateTime.UtcNow).IsRegistrationClosed);
+    }
+
+    [Fact]
+    public void IsRegistrationClosed_StartIsStillAhead_ReturnsFalse()
+    {
+        Assert.False(AnEventStartingAt(DateTime.UtcNow.AddHours(1)).IsRegistrationClosed);
+    }
+
+    [Fact]
+    public void IsRegistrationClosed_EventWasJustCreated_ReturnsFalse()
+    {
+        Assert.False(AnEvent().IsRegistrationClosed);
+    }
+
     private static Event AnEvent() => AnEventAccepting(8);
+
+    // Create refuses a start that has passed, so an event that has already begun is rehydrated.
+    private static Event AnEventStartingAt(DateTime startDateTime) => Event.Reconstitute(
+        1,
+        Guid.CreateVersion7(),
+        "Friday Night Magic",
+        null,
+        "The Back Room",
+        startDateTime,
+        startDateTime.AddHours(3),
+        AnyGameType(),
+        8);
 
     private static Event AnEventAccepting(int registrationLimit) => Event.Create(
         "Friday Night Magic",

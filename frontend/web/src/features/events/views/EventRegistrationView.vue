@@ -25,7 +25,7 @@ const { event, isLoading, error, dataNotFound, load } = useEvent(() => props.eve
 const { registration, isRegistered, isSaving, failure, register, clearFailure } =
   useEventRegistration(() => props.eventId)
 
-const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
+const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE, ['Name'])
 
 const name = ref('')
 

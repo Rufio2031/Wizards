@@ -292,4 +292,29 @@ describe('CreateEventView', () => {
     )
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
+
+  it('points at the control holding a value the API could not read, in the organizer own words', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(eventsApi.create).mockRejectedValue(
+      new ApiError(400, {
+        title: 'One or more validation errors occurred.',
+        errors: {
+          '$.startDateTime': [
+            'The JSON value could not be converted to System.DateTimeOffset. Path: $.startDateTime | LineNumber: 0 | BytePositionInLine: 52.',
+          ],
+        },
+      }),
+    )
+
+    const { wrapper } = await mountView()
+
+    await fillDetails(wrapper)
+    await submit(wrapper)
+
+    expect(descriptionsOf(wrapper, 'Starts')).toContain(
+      'We could not read this value. Please check it and try again.',
+    )
+    expect(wrapper.text()).not.toContain('System.DateTimeOffset')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
 })

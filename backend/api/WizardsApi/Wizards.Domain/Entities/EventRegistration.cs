@@ -7,8 +7,8 @@ namespace Wizards.Domain.Entities;
 /// </summary>
 /// <remarks>
 /// A registration is held against the event it was taken for and cannot exist without one. Whether
-/// the event still has room is a rule the event states, so the caller resolves it against
-/// <see cref="Event.IsFull"/> before creating one.
+/// the event will take one at all is a rule the event states, resolved against
+/// <see cref="Event.IsFull"/> and <see cref="Event.IsRegistrationClosed"/>.
 /// <para>
 /// It carries no identifier of its own, because nothing addresses a single registration yet. The
 /// store keys the row it is written to, and one is added here once there is something to address it

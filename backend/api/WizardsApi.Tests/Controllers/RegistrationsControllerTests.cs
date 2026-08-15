@@ -122,6 +122,28 @@ public sealed class RegistrationsControllerTests
     }
 
     [Fact]
+    public async Task CreateRegistration_RegistrationHasClosed_ReturnsConflict()
+    {
+        CreateRegistrationRequest request = BuildRequest();
+
+        this.registrationsService
+            .AddRegistration(EventId, request, Arg.Any<CancellationToken>())
+            .Returns(WriteResult<RegistrationResponse>.Failure(RegistrationErrors.RegistrationClosed));
+
+        ActionResult<RegistrationResponse> result = await this.controller.CreateRegistration(
+            EventId,
+            request,
+            CancellationToken.None);
+
+        ConflictObjectResult conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        ValidationProblemDetails details = Assert.IsType<ValidationProblemDetails>(conflict.Value);
+        Assert.Equal(StatusCodes.Status409Conflict, details.Status);
+        Assert.Equal(
+            [RegistrationErrors.RegistrationClosed.Message],
+            details.Errors[RegistrationErrors.RegistrationClosed.Key]);
+    }
+
+    [Fact]
     public async Task CreateRegistration_NoEventCarriesTheIdentifier_ReturnsNotFound()
     {
         CreateRegistrationRequest request = BuildRequest();

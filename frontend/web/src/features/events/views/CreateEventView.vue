@@ -39,16 +39,29 @@ const selectedGameType = computed<GameTypeTemplate | undefined>(() =>
   gameTypes.value.find((gameType) => gameType.gameTypeId === selectedGameTypeId.value),
 )
 
-const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
+/** The API blames a rejected setting on the field its value arrived in. */
+const SETTING_FIELD_PREFIX = 'gameType.selections.'
+
+const renderedFields = computed(() => [
+  'Name',
+  'Description',
+  'Location',
+  'StartDateTime',
+  'EndDateTime',
+  'RegistrationLimit',
+  'gameType.gameTypeId',
+  ...(selectedGameType.value?.settings ?? []).map(
+    (setting) => `${SETTING_FIELD_PREFIX}${setting.key}`,
+  ),
+])
+
+const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE, renderedFields)
 
 const submitError = ref('')
 
 const bannerError = computed(() => formError.value || submitError.value)
 
 const earliestStart = toDateTimeLocalValue(new Date())
-
-/** The API blames a rejected setting on the field its value arrived in. */
-const SETTING_FIELD_PREFIX = 'gameType.selections.'
 
 function settingError(key: string): string | undefined {
   return fieldError(`${SETTING_FIELD_PREFIX}${key}`)
