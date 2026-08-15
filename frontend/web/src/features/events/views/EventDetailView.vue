@@ -22,14 +22,22 @@ const { event, isLoading, error, dataNotFound, load, calendarInviteUrl } = useEv
   () => props.eventId,
 )
 
-const { gameType, isLoading: isLoadingGameType } = useGameType(
-  () => event.value?.gameType.gameTypeId,
-)
+const {
+  gameType,
+  isLoading: isLoadingGameType,
+  error: gameTypeError,
+} = useGameType(() => event.value?.gameType.gameTypeId)
 
 const gameTypeSettings = computed(() => gameType.value?.settings ?? [])
 
 const hasSelections = computed(
   () => Object.keys(event.value?.selections ?? {}).length > 0,
+)
+
+// Without the game type, the selections have no labels and would be listed under
+// their raw keys and values, which read as neither.
+const canShowSettings = computed(
+  () => hasSelections.value && !isLoadingGameType.value && !gameTypeError.value,
 )
 </script>
 
@@ -55,7 +63,7 @@ const hasSelections = computed(
         {{ formatSchedule(event.startDateTime, event.endDateTime) }}
       </p>
 
-      <p class="event-detail__meta">{{ event.location }}</p>
+      <p v-if="event.location" class="event-detail__meta">{{ event.location }}</p>
 
       <p class="event-detail__meta">Up to {{ event.registrationLimit }} players</p>
 
@@ -67,7 +75,7 @@ const hasSelections = computed(
         {{ event.gameType.name }}
       </AppBadge>
 
-      <template v-if="hasSelections && !isLoadingGameType">
+      <template v-if="canShowSettings">
         <h2 class="event-detail__settings-title">Settings</h2>
 
         <GameTypeSelectionList :settings="gameTypeSettings" :selections="event.selections" />

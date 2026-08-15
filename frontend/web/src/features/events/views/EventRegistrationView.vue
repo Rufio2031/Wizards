@@ -4,8 +4,8 @@ import { ref, watch } from 'vue'
 import AppAction from '@/components/AppAction.vue'
 import AppAsyncState from '@/components/AppAsyncState.vue'
 import AppBackLink from '@/components/AppBackLink.vue'
+import AppErrorMessage from '@/components/AppErrorMessage.vue'
 import AppField from '@/components/AppField.vue'
-import AppFormError from '@/components/AppFormError.vue'
 import { useFormFailure } from '@/composables/useFormFailure'
 import { RouteNames } from '@/router/routeNames'
 
@@ -66,7 +66,7 @@ function submit() {
       </p>
 
       <form v-else class="event-registration__form" @submit.prevent="submit">
-        <AppFormError :message="formError" />
+        <AppErrorMessage :message="formError" />
 
         <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
           <input

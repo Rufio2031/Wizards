@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// A labelled form control, with the hint and error text the control is described by.
 import { computed, useId } from 'vue'
 
 const props = defineProps<{

@@ -72,6 +72,14 @@ export function formatSchedule(startValue?: string, endValue?: string): string {
   return formatDateTimeRange(startValue, endValue) ?? UNKNOWN_SCHEDULE_LABEL
 }
 
+function padded(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+function toLocalDayKey(date: Date): string {
+  return `${date.getFullYear()}-${padded(date.getMonth() + 1)}-${padded(date.getDate())}`
+}
+
 export function toLocalDay(value?: string): LocalDay {
   const date = toDate(value)
 
@@ -79,11 +87,21 @@ export function toLocalDay(value?: string): LocalDay {
     return { key: UNKNOWN_DAY_KEY, label: UNKNOWN_SCHEDULE_LABEL }
   }
 
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-
   return {
-    key: `${date.getFullYear()}-${month}-${day}`,
+    key: toLocalDayKey(date),
     label: dayHeadingFormatter.format(date),
   }
+}
+
+/**
+ * Formats an instant as the local `YYYY-MM-DDTHH:mm` a `datetime-local` input
+ * reads, which an ISO instant is not.
+ */
+export function toDateTimeLocalValue(date: Date): string {
+  return `${toLocalDayKey(date)}T${padded(date.getHours())}:${padded(date.getMinutes())}`
+}
+
+/** Parses a `datetime-local` value as an ISO instant, or `null` when unreadable. */
+export function toUtcInstant(localValue: string): string | null {
+  return toDate(localValue)?.toISOString() ?? null
 }

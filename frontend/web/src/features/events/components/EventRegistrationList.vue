@@ -1,5 +1,7 @@
 <script setup lang="ts">
 // The players registered for an event, in the order they registered.
+import AppErrorMessage from '@/components/AppErrorMessage.vue'
+
 import { useEventRegistrations } from '../composables/useEventRegistrations'
 
 const props = defineProps<{
@@ -15,16 +17,17 @@ const { registrations, isLoading, error } = useEventRegistrations(() => props.ev
     <h3 class="event-registration-list__heading">
       Registered players
 
-      <span class="event-registration-list__count">
+      <span v-if="!isLoading && !error" class="event-registration-list__count">
         {{ registrations.length }} of {{ registrationLimit }}
       </span>
     </h3>
 
     <p v-if="isLoading">Loading registrations…</p>
 
-    <p v-else-if="error">
-      We could not load the registrations just now. Please try again.
-    </p>
+    <AppErrorMessage
+      v-else-if="error"
+      message="We could not load the registrations just now. Please try again."
+    />
 
     <p v-else-if="registrations.length === 0">Nobody has registered yet.</p>
 

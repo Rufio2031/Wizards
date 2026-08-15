@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// The one call to action, rendered as a link when it navigates and a button when it acts.
 import type { RouteLocationRaw } from 'vue-router'
 
 withDefaults(
@@ -16,7 +17,12 @@ withDefaults(
 </script>
 
 <template>
-  <RouterLink v-if="to" class="app-action" :to="to">
+  <RouterLink
+    v-if="to"
+    class="app-action"
+    :class="{ 'app-action--primary': primary }"
+    :to="to"
+  >
     <slot />
   </RouterLink>
 

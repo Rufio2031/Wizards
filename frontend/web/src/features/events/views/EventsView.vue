@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppAction from '@/components/AppAction.vue'
 import AppAsyncState from '@/components/AppAsyncState.vue'
-import AppFormError from '@/components/AppFormError.vue'
+import AppErrorMessage from '@/components/AppErrorMessage.vue'
 import { RouteNames } from '@/router/routeNames'
 
 import EventCard from '../components/EventCard.vue'
@@ -38,7 +38,7 @@ load()
       error-text="We could not load events just now. Please try again."
       @retry="load"
     >
-      <p v-if="groups.length === 0">No events are scheduled yet.</p>
+      <p v-if="groups.length === 0">No upcoming events.</p>
 
       <template v-else>
         <ul class="events__days" role="list">
@@ -57,7 +57,7 @@ load()
         </ul>
 
         <div v-if="hasMore || loadMoreFailed" class="events__more">
-          <AppFormError
+          <AppErrorMessage
             v-if="loadMoreFailed"
             message="We could not load more events just now. Please try again."
           />

@@ -4,18 +4,20 @@ import { useRouter } from 'vue-router'
 
 import AppAction from '@/components/AppAction.vue'
 import AppAsyncState from '@/components/AppAsyncState.vue'
+import AppErrorMessage from '@/components/AppErrorMessage.vue'
 import AppField from '@/components/AppField.vue'
-import AppFormError from '@/components/AppFormError.vue'
 import { useFormFailure } from '@/composables/useFormFailure'
 import GameTypeSettingField from '@/features/gameTypes/components/GameTypeSettingField.vue'
 import { useGameTypes } from '@/features/gameTypes/composables/useGameTypes'
 import type { GameTypeTemplate } from '@/features/gameTypes/types/gameType'
 import { RouteNames } from '@/router/routeNames'
+import { toDateTimeLocalValue, toUtcInstant } from '@/utils/dateTime'
 
 import { useCreateEvent } from '../composables/useCreateEvent'
 import { REGISTRATION_LIMIT } from '../types/event'
 
 const UNEXPECTED_FAILURE = 'We could not schedule the event just now. Please try again.'
+const UNREADABLE_SCHEDULE = 'Please enter a start and end date and time.'
 
 const router = useRouter()
 
@@ -39,6 +41,12 @@ const selectedGameType = computed<GameTypeTemplate | undefined>(() =>
 
 const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
 
+const submitError = ref('')
+
+const bannerError = computed(() => formError.value || submitError.value)
+
+const earliestStart = toDateTimeLocalValue(new Date())
+
 /** The API blames a rejected setting on the field its value arrived in. */
 const SETTING_FIELD_PREFIX = 'gameType.selections.'
 
@@ -59,13 +67,17 @@ watch(
     selectedGameTypeId,
     selections,
   ],
-  () => clearFailure(),
+  () => {
+    clearFailure()
+    submitError.value = ''
+  },
   { deep: true },
 )
 
 // Switching games replaces the settings entirely, so values from the previous
-// game cannot be submitted against the new one.
-watch(selectedGameType, () => {
+// game cannot be submitted against the new one. Watches the id rather than the
+// game type, since a reload rebuilds that object without the choice changing.
+watch(selectedGameTypeId, () => {
   selections.value = Object.fromEntries(
     (selectedGameType.value?.settings ?? []).map((setting) => [
       setting.key,
@@ -80,32 +92,43 @@ watch(gameTypes, (loaded) => {
   }
 })
 
-function toUtcInstant(localValue: string): string {
-  return new Date(localValue).toISOString()
-}
-
 async function submit() {
-  const created = await create({
-    name: name.value,
-    description: description.value || undefined,
-    location: location.value,
-    startDateTime: toUtcInstant(startDateTime.value),
-    endDateTime: toUtcInstant(endDateTime.value),
-    registrationLimit: registrationLimit.value,
-    gameType: {
-      gameTypeId: selectedGameTypeId.value,
-      selections: selections.value,
-    },
-  })
+  submitError.value = ''
 
-  if (!created) {
+  const startsAt = toUtcInstant(startDateTime.value)
+  const endsAt = toUtcInstant(endDateTime.value)
+
+  if (!startsAt || !endsAt) {
+    submitError.value = UNREADABLE_SCHEDULE
+
     return
   }
 
-  await router.push({
-    name: RouteNames.eventDetail,
-    params: { eventId: created.eventId },
-  })
+  try {
+    const created = await create({
+      name: name.value,
+      description: description.value || undefined,
+      location: location.value,
+      startDateTime: startsAt,
+      endDateTime: endsAt,
+      registrationLimit: registrationLimit.value,
+      gameType: {
+        gameTypeId: selectedGameTypeId.value,
+        selections: selections.value,
+      },
+    })
+
+    if (!created) {
+      return
+    }
+
+    await router.push({
+      name: RouteNames.eventDetail,
+      params: { eventId: created.eventId },
+    })
+  } catch {
+    submitError.value = UNEXPECTED_FAILURE
+  }
 }
 
 load()
@@ -125,7 +148,7 @@ load()
       @retry="load"
     >
       <form class="create-event__form" @submit.prevent="submit">
-        <AppFormError :message="formError" />
+        <AppErrorMessage :message="bannerError" />
 
         <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
           <input
@@ -175,6 +198,7 @@ load()
             :id="id"
             v-model="startDateTime"
             type="datetime-local"
+            :min="earliestStart"
             :aria-describedby="describedBy"
             :aria-invalid="invalid"
             required

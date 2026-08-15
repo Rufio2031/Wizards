@@ -30,6 +30,8 @@ withDefaults(
       {{ formatSchedule(event.startDateTime, event.endDateTime) }}
     </p>
 
+    <p v-if="event.location" class="event-card__meta">{{ event.location }}</p>
+
     <p class="event-card__meta">Up to {{ event.registrationLimit }} players</p>
 
     <p v-if="event.description" class="event-card__description">

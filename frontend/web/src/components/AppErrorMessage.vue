@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The banner a form shows for a failure that belongs to no single field.
+// The banner for any error the user must notice, whether a rejected submission or a failed fetch.
 defineProps<{
   /** The banner copy. Nothing renders while it is empty. */
   message?: string
@@ -7,11 +7,11 @@ defineProps<{
 </script>
 
 <template>
-  <p v-if="message" class="app-form-error" role="alert">{{ message }}</p>
+  <p v-if="message" class="app-error-message" role="alert">{{ message }}</p>
 </template>
 
 <style scoped>
-.app-form-error {
+.app-error-message {
   margin: 0;
   padding: 12px;
   border: 1px solid var(--color-danger-border);

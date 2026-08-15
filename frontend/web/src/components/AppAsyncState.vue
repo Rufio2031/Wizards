@@ -1,5 +1,7 @@
 <script setup lang="ts" generic="T">
+// The loading, missing, failed, and loaded states of a single fetched resource.
 import AppAction from '@/components/AppAction.vue'
+import AppErrorMessage from '@/components/AppErrorMessage.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -39,7 +41,7 @@ defineSlots<{
   </template>
 
   <template v-else-if="failed">
-    <p>{{ errorText }}</p>
+    <AppErrorMessage :message="errorText" />
 
     <AppAction class="app-async-state__retry" @click="$emit('retry')">Try again</AppAction>
   </template>

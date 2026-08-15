@@ -32,6 +32,23 @@ const hasSlider = computed(() => isBounded.value && !isFixed.value)
 
 const isChecked = computed(() => props.modelValue === 'true')
 
+const UNAVAILABLE_OPTION_ERROR =
+  'This value is no longer offered for this game. Please choose another.'
+
+// A value missing from the options would leave the select on no option at all,
+// which reads as a blank the organizer chose rather than one that went missing,
+// and submits the stale value untouched.
+const hasUnavailableValue = computed(
+  () =>
+    props.setting.type === 'enum' &&
+    props.modelValue !== '' &&
+    !props.setting.options.includes(props.modelValue),
+)
+
+const fieldError = computed(
+  () => props.error ?? (hasUnavailableValue.value ? UNAVAILABLE_OPTION_ERROR : undefined),
+)
+
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement | HTMLSelectElement
 
@@ -44,7 +61,8 @@ function onToggle(event: Event) {
 
 // Runs on blur rather than on every keystroke, so typing 1 toward 100 is not
 // snapped up to the minimum as soon as the first digit lands. An empty or
-// unparseable box is left alone for the server to reject.
+// unparseable box is left alone for the server to reject. Only an `int` setting
+// reaches this input, so every entry rounds to a whole number.
 function onNumberChange(event: Event) {
   const entered = (event.target as HTMLInputElement).value.trim()
 
@@ -59,18 +77,18 @@ function onNumberChange(event: Event) {
   }
 
   const { minValue, maxValue } = props.setting
-  let clamped = parsed
+  let committed = Math.round(parsed)
 
   if (minValue !== undefined) {
-    clamped = Math.max(clamped, minValue)
+    committed = Math.max(committed, minValue)
   }
 
   if (maxValue !== undefined) {
-    clamped = Math.min(clamped, maxValue)
+    committed = Math.min(committed, maxValue)
   }
 
-  if (String(clamped) !== entered) {
-    emit('update:modelValue', String(clamped))
+  if (String(committed) !== entered) {
+    emit('update:modelValue', String(committed))
   }
 }
 </script>
@@ -80,7 +98,7 @@ function onNumberChange(event: Event) {
     v-slot="{ id, describedBy, invalid }"
     :label="setting.label"
     :hint="setting.description"
-    :error="error"
+    :error="fieldError"
     :inline="setting.type === 'bool'"
   >
     <input
@@ -89,6 +107,7 @@ function onNumberChange(event: Event) {
       type="checkbox"
       :checked="isChecked"
       :aria-describedby="describedBy"
+      :aria-invalid="invalid"
       @change="onToggle"
     />
 
@@ -100,6 +119,10 @@ function onNumberChange(event: Event) {
       :aria-invalid="invalid"
       @change="onInput"
     >
+      <option v-if="hasUnavailableValue" :value="modelValue" disabled>
+        {{ modelValue }} (unavailable)
+      </option>
+
       <option v-for="option in setting.options" :key="option" :value="option">
         {{ option }}
       </option>
