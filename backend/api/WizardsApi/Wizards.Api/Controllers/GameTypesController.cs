@@ -7,7 +7,6 @@ namespace Wizards.Api.Controllers;
 
 [ApiController]
 [Route("gametypes")]
-[Produces("application/json")]
 public class GameTypesController(IGameTypesService gameTypesService) : ControllerBase
 {
     /// <summary>

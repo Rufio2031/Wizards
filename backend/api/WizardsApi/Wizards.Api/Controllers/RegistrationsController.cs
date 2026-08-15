@@ -10,7 +10,6 @@ namespace Wizards.Api.Controllers;
 
 [ApiController]
 [Route("events/{eventId:guid}/registrations")]
-[Produces("application/json")]
 public class RegistrationsController(IRegistrationsService registrationsService) : ControllerBase
 {
     /// <summary>
