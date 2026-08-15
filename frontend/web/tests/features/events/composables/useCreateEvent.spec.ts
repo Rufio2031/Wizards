@@ -86,7 +86,6 @@ describe('useCreateEvent', () => {
     expect(failure.value).toEqual({
       fieldErrors: { name: ['Name is required.'] },
       formMessages: [],
-      unreadableFields: [],
     })
   })
 
@@ -107,9 +106,10 @@ describe('useCreateEvent', () => {
     await expect(create({ ...request, startDateTime: 'the ides of March' })).resolves.toBeNull()
 
     expect(failure.value).toEqual({
-      fieldErrors: {},
+      fieldErrors: {
+        startDateTime: ['We could not read this value. Please check it and try again.'],
+      },
       formMessages: [],
-      unreadableFields: ['startDateTime'],
     })
   })
 

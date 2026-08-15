@@ -9,12 +9,8 @@ const FALLBACK = 'The event could not be saved.'
 /** Said under the control that holds a value the API could not read. */
 const UNREADABLE_VALUE = 'We could not read this value. Please check it and try again.'
 
-/** Said once in the banner when no control on the form holds the unreadable value. */
-const UNREADABLE_REQUEST =
-  'We could not read some of what you sent. Please check your entries and try again.'
-
 function failed(parts: Partial<ApiFailure>): ApiFailure {
-  return { fieldErrors: {}, formMessages: [], unreadableFields: [], ...parts }
+  return { fieldErrors: {}, formMessages: [], ...parts }
 }
 
 describe('useFormFailure', () => {
@@ -98,71 +94,83 @@ describe('useFormFailure', () => {
     expect(formError.value).toBe('')
   })
 
-  it('puts an unreadable value under the control that holds it, matched however it is cased', () => {
-    const failure = failed({ unreadableFields: ['startDateTime'] })
+  it('puts an unreadable value under the control that holds it', () => {
+    const failure = failed({ fieldErrors: { startDateTime: [UNREADABLE_VALUE] } })
 
     const { fieldError, formError } = useFormFailure(failure, FALLBACK, [
-      'Name',
-      'StartDateTime',
+      'name',
+      'startDateTime',
     ])
 
-    expect(fieldError('StartDateTime')).toBe(UNREADABLE_VALUE)
-    expect(fieldError('Name')).toBeUndefined()
+    expect(fieldError('startDateTime')).toBe(UNREADABLE_VALUE)
+    expect(fieldError('name')).toBeUndefined()
     expect(formError.value).toBe('')
   })
 
-  it('says one generic sentence when the form holds no control for the unreadable value', () => {
-    const failure = failed({ unreadableFields: ['idempotencyKey'] })
+  it('names the value in the banner when the form holds no control for it', () => {
+    const failure = failed({ fieldErrors: { idempotencyKey: [UNREADABLE_VALUE] } })
 
-    const { formError } = useFormFailure(failure, FALLBACK, ['Name', 'StartDateTime'])
+    const { formError } = useFormFailure(failure, FALLBACK, ['name', 'startDateTime'])
 
-    expect(formError.value).toBe(UNREADABLE_REQUEST)
+    expect(formError.value).toBe(`Idempotency Key: ${UNREADABLE_VALUE}`)
   })
 
-  it('says that sentence once however many values could not be read', () => {
+  it('names each unreadable value the form holds no control for', () => {
     const failure = failed({
-      unreadableFields: ['idempotencyKey', 'attendeeCount'],
+      fieldErrors: {
+        idempotencyKey: [UNREADABLE_VALUE],
+        attendeeCount: [UNREADABLE_VALUE],
+      },
     })
 
-    const { formError } = useFormFailure(failure, FALLBACK, ['Name'])
+    const { formError } = useFormFailure(failure, FALLBACK, ['name'])
 
-    expect(formError.value).toBe(UNREADABLE_REQUEST)
+    expect(formError.value).toBe(
+      `Idempotency Key: ${UNREADABLE_VALUE} Attendee Count: ${UNREADABLE_VALUE}`,
+    )
   })
 
   it('speaks under the control it can and in the banner for the value it cannot place', () => {
     const failure = failed({
-      unreadableFields: ['startDateTime', 'idempotencyKey'],
+      fieldErrors: {
+        startDateTime: [UNREADABLE_VALUE],
+        idempotencyKey: [UNREADABLE_VALUE],
+      },
     })
 
     const { fieldError, formError } = useFormFailure(failure, FALLBACK, [
-      'StartDateTime',
+      'startDateTime',
     ])
 
-    expect(fieldError('StartDateTime')).toBe(UNREADABLE_VALUE)
-    expect(formError.value).toBe(UNREADABLE_REQUEST)
+    expect(fieldError('startDateTime')).toBe(UNREADABLE_VALUE)
+    expect(formError.value).toBe(`Idempotency Key: ${UNREADABLE_VALUE}`)
   })
 
   it('shows every message in the banner when the form declares no fields', () => {
     const failure = failed({
-      fieldErrors: { Name: ['Name is required.'] },
-      unreadableFields: ['startDateTime'],
+      fieldErrors: {
+        name: ['Name is required.'],
+        startDateTime: [UNREADABLE_VALUE],
+      },
     })
 
     const { formError } = useFormFailure(failure, FALLBACK)
 
-    expect(formError.value).toBe(`Name: Name is required. ${UNREADABLE_REQUEST}`)
+    expect(formError.value).toBe(
+      `Name: Name is required. Start Date Time: ${UNREADABLE_VALUE}`,
+    )
   })
 
   it('says the whole-request messages alongside the ones no field claims', () => {
     const failure = failed({
       formMessages: ['The event has already started.'],
-      unreadableFields: ['idempotencyKey'],
+      fieldErrors: { idempotencyKey: [UNREADABLE_VALUE] },
     })
 
-    const { formError } = useFormFailure(failure, FALLBACK, ['StartDateTime'])
+    const { formError } = useFormFailure(failure, FALLBACK, ['startDateTime'])
 
     expect(formError.value).toBe(
-      `The event has already started. ${UNREADABLE_REQUEST}`,
+      `The event has already started. Idempotency Key: ${UNREADABLE_VALUE}`,
     )
   })
 
@@ -176,5 +184,96 @@ describe('useFormFailure', () => {
     const { formError } = useFormFailure(null, FALLBACK, ['Name'])
 
     expect(formError.value).toBe('')
+  })
+
+  it('stays silent once an edit retires a failure that only blamed fields', () => {
+    const failure = failed({ fieldErrors: { name: ['Name is required.'] } })
+
+    const { fieldError, formError, clearFieldErrors } = useFormFailure(failure, FALLBACK, [
+      'name',
+    ])
+
+    clearFieldErrors()
+
+    expect(fieldError('name')).toBeUndefined()
+    expect(formError.value).toBe('')
+  })
+
+  it('stays silent once an edit retires a value the API could not read', () => {
+    const failure = failed({
+      fieldErrors: {
+        startDateTime: [UNREADABLE_VALUE],
+        idempotencyKey: [UNREADABLE_VALUE],
+      },
+    })
+
+    const { fieldError, formError, clearFieldErrors } = useFormFailure(failure, FALLBACK, [
+      'startDateTime',
+    ])
+
+    expect(formError.value).toBe(`Idempotency Key: ${UNREADABLE_VALUE}`)
+
+    clearFieldErrors()
+
+    expect(fieldError('startDateTime')).toBeUndefined()
+    expect(formError.value).toBe('')
+  })
+
+  it('keeps saying what the request was refused for after an edit clears the fields', () => {
+    const failure = failed({
+      formMessages: ['This event is full.'],
+      fieldErrors: { name: ['Name is required.'] },
+    })
+
+    const { fieldError, formError, clearFieldErrors } = useFormFailure(failure, FALLBACK, [
+      'name',
+    ])
+
+    expect(fieldError('name')).toBe('Name is required.')
+
+    clearFieldErrors()
+
+    expect(fieldError('name')).toBeUndefined()
+    expect(formError.value).toBe('This event is full.')
+  })
+
+  it('speaks for the next failure without being told a new attempt began', () => {
+    const failure = ref<ApiFailure | null>(
+      failed({ fieldErrors: { name: ['Name is required.'] } }),
+    )
+
+    const { fieldError, formError, clearFieldErrors } = useFormFailure(failure, FALLBACK, [
+      'name',
+    ])
+
+    clearFieldErrors()
+
+    expect(fieldError('name')).toBeUndefined()
+
+    failure.value = failed({
+      formMessages: ['This event is full.'],
+      fieldErrors: { name: ['That name is already taken.'] },
+    })
+
+    expect(fieldError('name')).toBe('That name is already taken.')
+    expect(formError.value).toBe('This event is full.')
+  })
+
+  it('speaks for a failure that arrives after an edit made while nothing had failed', () => {
+    const failure = ref<ApiFailure | null>(null)
+
+    const { fieldError, formError, clearFieldErrors } = useFormFailure(failure, FALLBACK, [
+      'name',
+    ])
+
+    clearFieldErrors()
+
+    failure.value = failed({
+      formMessages: ['This event is full.'],
+      fieldErrors: { name: ['Name is required.'] },
+    })
+
+    expect(fieldError('name')).toBe('Name is required.')
+    expect(formError.value).toBe('This event is full.')
   })
 })

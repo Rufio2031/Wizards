@@ -1,6 +1,7 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
+import type { ApiFailure } from '@/services/http/validation'
 import { createUuid } from '@/utils/uuid'
 
 import { eventsApi } from '../api/eventsApi'
@@ -9,15 +10,16 @@ import type { CreateRegistrationRequest, Registration } from '../types/event'
 /** The composable owns the idempotency key, so a caller never supplies one. */
 export type RegisterRequest = Omit<CreateRegistrationRequest, 'idempotencyKey'>
 
+const IDEMPOTENCY_KEY_FIELD = 'idempotencyKey'
+
 /**
  * Registers a player for an event and reports why an attempt failed.
  *
  * @param eventId The event being registered for.
  * @returns `registration`, the stored registration once an attempt has
  * succeeded, `isRegistered`, `isSaving`, the `failure` from the last attempt
- * with its messages split by the field the API blamed, `register` to make an
- * attempt, and `clearFailure` to drop a reported failure once the player starts
- * correcting it.
+ * with its messages split by the field the API blamed and anything said about
+ * the key this composable owns left out, and `register` to make an attempt.
  */
 export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
   const idempotencyKey = createUuid()
@@ -25,8 +27,7 @@ export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
   const {
     data: registration,
     isLoading: isSaving,
-    failure,
-    clearError: clearFailure,
+    failure: attemptFailure,
     run,
   } = useAsyncRequest<Registration | null, RegisterRequest>(
     (options, request) =>
@@ -42,6 +43,25 @@ export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
   )
 
   const isRegistered = computed(() => registration.value !== null)
+
+  // The player never supplies the idempotency key and so can do nothing about a
+  // complaint against it. Only the message is dropped, not the failure, so the view
+  // still reports the attempt in its own words.
+  const failure = computed<ApiFailure | null>(() => {
+    const current = attemptFailure.value
+
+    if (!current || !(IDEMPOTENCY_KEY_FIELD in current.fieldErrors)) {
+      return current
+    }
+
+    const fieldErrors = Object.fromEntries(
+      Object.entries(current.fieldErrors).filter(
+        ([field]) => field !== IDEMPOTENCY_KEY_FIELD,
+      ),
+    )
+
+    return { ...current, fieldErrors }
+  })
 
   let inFlight: Promise<Registration | null> | null = null
 
@@ -77,6 +97,5 @@ export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
     isSaving,
     failure,
     register,
-    clearFailure,
   }
 }

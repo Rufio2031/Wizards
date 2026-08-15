@@ -22,7 +22,7 @@ const UNREADABLE_SCHEDULE = 'Please enter a start and end date and time.'
 const router = useRouter()
 
 const { gameTypes, isLoading: isLoadingGameTypes, error: gameTypesError, load } = useGameTypes()
-const { isSaving, failure, create, clearFailure } = useCreateEvent()
+const { isSaving, failure, create } = useCreateEvent()
 
 const name = ref('')
 const description = ref('')
@@ -43,23 +43,32 @@ const selectedGameType = computed<GameTypeTemplate | undefined>(() =>
 const SETTING_FIELD_PREFIX = 'gameType.selections.'
 
 const renderedFields = computed(() => [
-  'Name',
-  'Description',
-  'Location',
-  'StartDateTime',
-  'EndDateTime',
-  'RegistrationLimit',
+  'name',
+  'description',
+  'location',
+  'startDateTime',
+  'endDateTime',
+  'registrationLimit',
   'gameType.gameTypeId',
   ...(selectedGameType.value?.settings ?? []).map(
     (setting) => `${SETTING_FIELD_PREFIX}${setting.key}`,
   ),
 ])
 
-const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE, renderedFields)
+const { fieldError, formError, clearFieldErrors } = useFormFailure(
+  failure,
+  UNEXPECTED_FAILURE,
+  renderedFields,
+)
 
 const submitError = ref('')
 
-const bannerError = computed(() => formError.value || submitError.value)
+// Both can stand at once. What this form refused to send says nothing about what the
+// API refused last time, and the API's words are gone for good once the next attempt
+// starts, so neither may take the other's place.
+const bannerError = computed(() =>
+  [submitError.value, formError.value].filter(Boolean).join(' '),
+)
 
 const earliestStart = toDateTimeLocalValue(new Date())
 
@@ -67,8 +76,8 @@ function settingError(key: string): string | undefined {
   return fieldError(`${SETTING_FIELD_PREFIX}${key}`)
 }
 
-// Reported errors describe the details as they were submitted, so the first
-// correction retires them rather than leaving them under fields being fixed.
+// A rejected value describes the details as they were submitted, so the first
+// correction retires it rather than leaving it under a field being fixed.
 watch(
   [
     name,
@@ -81,7 +90,7 @@ watch(
     selections,
   ],
   () => {
-    clearFailure()
+    clearFieldErrors()
     submitError.value = ''
   },
   { deep: true },
@@ -163,7 +172,7 @@ load()
       <form class="create-event__form" @submit.prevent="submit">
         <AppErrorMessage :message="bannerError" />
 
-        <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
+        <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('name')">
           <input
             :id="id"
             v-model="name"
@@ -176,7 +185,7 @@ load()
         <AppField
           v-slot="{ id, describedBy, invalid }"
           label="Description"
-          :error="fieldError('Description')"
+          :error="fieldError('description')"
         >
           <textarea
             :id="id"
@@ -191,7 +200,7 @@ load()
           v-slot="{ id, describedBy, invalid }"
           label="Location"
           hint="Stated on the event's calendar invite."
-          :error="fieldError('Location')"
+          :error="fieldError('location')"
         >
           <input
             :id="id"
@@ -205,7 +214,7 @@ load()
         <AppField
           v-slot="{ id, describedBy, invalid }"
           label="Starts"
-          :error="fieldError('StartDateTime')"
+          :error="fieldError('startDateTime')"
         >
           <input
             :id="id"
@@ -221,7 +230,7 @@ load()
         <AppField
           v-slot="{ id, describedBy, invalid }"
           label="Ends"
-          :error="fieldError('EndDateTime')"
+          :error="fieldError('endDateTime')"
         >
           <input
             :id="id"
@@ -238,7 +247,7 @@ load()
           v-slot="{ id, describedBy, invalid }"
           label="Player limit"
           :hint="`Between ${REGISTRATION_LIMIT.min} and ${REGISTRATION_LIMIT.max} players.`"
-          :error="fieldError('RegistrationLimit')"
+          :error="fieldError('registrationLimit')"
         >
           <input
             :id="id"

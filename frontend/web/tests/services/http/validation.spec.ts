@@ -7,6 +7,13 @@ import { toApiFailure } from '@/services/http/validation'
 const UNREADABLE_START =
   'The JSON value could not be converted to System.DateTimeOffset. Path: $.startDateTime | LineNumber: 0 | BytePositionInLine: 52.'
 
+/** Said under the field that holds a value the API could not read. */
+const UNREADABLE_VALUE = 'We could not read this value. Please check it and try again.'
+
+/** Said about the request as a whole when the body could not be read at all. */
+const UNREADABLE_REQUEST =
+  'We could not read some of what you sent. Please check your entries and try again.'
+
 describe('toApiFailure', () => {
   it('splits a failure that blames both a field and the whole request', () => {
     const failure = toApiFailure(
@@ -21,7 +28,6 @@ describe('toApiFailure', () => {
     expect(failure).toEqual({
       fieldErrors: { email: ['Email is not valid.'] },
       formMessages: ['Registration is closed.', 'The event is already full.'],
-      unreadableFields: [],
     })
   })
 
@@ -40,17 +46,102 @@ describe('toApiFailure', () => {
 
     expect(failure).toEqual({
       fieldErrors: {
-        Name: [
+        name: [
           'The Name field is required.',
           'The field Name must be a string with a minimum length of 1 and a maximum length of 100.',
         ],
       },
       formMessages: [],
-      unreadableFields: [],
     })
   })
 
-  it('names a value it could not read by its path, and keeps the serializer out of it', () => {
+  it('names a field the way the app reads it, whatever casing the API used', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: { StartDateTime: ['Start must be in the future.'] },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: { startDateTime: ['Start must be in the future.'] },
+      formMessages: [],
+    })
+  })
+
+  it('names every DTO segment of a nested field the way the app reads it', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: {
+          'GameType.GameTypeId': ['Choose a game type.'],
+        },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: {
+        'gameType.gameTypeId': ['Choose a game type.'],
+      },
+      formMessages: [],
+    })
+  })
+
+  it('keeps a setting key past the selections path exactly as the API wrote it', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: {
+          'GameType.Selections.Rounds': ['Rounds must be at most 5.'],
+        },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: {
+        'gameType.selections.Rounds': ['Rounds must be at most 5.'],
+      },
+      formMessages: [],
+    })
+  })
+
+  it('leaves a field the API already named the way the app reads it alone', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: {
+          registrationLimit: ['Must be between 1 and 30.'],
+          'gameType.gameTypeId': ['Choose a game type.'],
+        },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: {
+        registrationLimit: ['Must be between 1 and 30.'],
+        'gameType.gameTypeId': ['Choose a game type.'],
+      },
+      formMessages: [],
+    })
+  })
+
+  it('keeps both messages when the API named one field two ways', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: {
+          Name: ['The Name field is required.'],
+          name: ['That name is already taken.'],
+        },
+      }),
+    )
+
+    expect(Object.keys(failure?.fieldErrors ?? {})).toEqual(['name'])
+    expect(failure?.fieldErrors.name).toEqual(
+      expect.arrayContaining([
+        'The Name field is required.',
+        'That name is already taken.',
+      ]),
+    )
+    expect(failure?.fieldErrors.name).toHaveLength(2)
+  })
+
+  it('blames a value it could not read on the field that holds it, and keeps the serializer out of it', () => {
     const failure = toApiFailure(
       new ApiError(400, {
         title: 'One or more validation errors occurred.',
@@ -59,10 +150,46 @@ describe('toApiFailure', () => {
     )
 
     expect(failure).toEqual({
-      fieldErrors: {},
+      fieldErrors: { startDateTime: [UNREADABLE_VALUE] },
       formMessages: [],
-      unreadableFields: ['startDateTime'],
     })
+  })
+
+  it('blames a nested value it could not read on the field the app reads it under', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        errors: {
+          '$.GameType.GameTypeId': [
+            'The JSON value could not be converted to System.Guid. Path: $.GameType.GameTypeId | LineNumber: 0 | BytePositionInLine: 33.',
+          ],
+        },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: { 'gameType.gameTypeId': [UNREADABLE_VALUE] },
+      formMessages: [],
+    })
+  })
+
+  it('blames the request as a whole when the body could not be read at all', () => {
+    const failure = toApiFailure(
+      new ApiError(400, {
+        title: 'One or more validation errors occurred.',
+        errors: {
+          $: [
+            'The JSON value could not be converted to Wizards.Application.DTOs.Requests.CreateEventRequest. Path: $ | LineNumber: 0 | BytePositionInLine: 0.',
+          ],
+        },
+      }),
+    )
+
+    expect(failure).toEqual({
+      fieldErrors: {},
+      formMessages: [UNREADABLE_REQUEST],
+    })
+    expect(JSON.stringify(failure)).not.toContain('Wizards.Application')
+    expect(JSON.stringify(failure)).not.toContain('BytePositionInLine')
   })
 
   it('carries no internal type name or byte offset out of the parse boundary', () => {
@@ -77,7 +204,7 @@ describe('toApiFailure', () => {
       }),
     )
 
-    expect(failure?.unreadableFields).toEqual(['idempotencyKey'])
+    expect(failure?.fieldErrors).toEqual({ idempotencyKey: [UNREADABLE_VALUE] })
     expect(JSON.stringify(failure)).not.toContain('Wizards.Application')
     expect(JSON.stringify(failure)).not.toContain('BytePositionInLine')
   })
@@ -96,9 +223,8 @@ describe('toApiFailure', () => {
     )
 
     expect(failure).toEqual({
-      fieldErrors: {},
+      fieldErrors: { startDateTime: [UNREADABLE_VALUE] },
       formMessages: ['Registration is closed.'],
-      unreadableFields: ['startDateTime'],
     })
   })
 
@@ -114,10 +240,13 @@ describe('toApiFailure', () => {
       }),
     )
 
-    expect(failure?.unreadableFields).toEqual(
-      expect.arrayContaining(['startDateTime', 'gameType.selections.rounds']),
-    )
-    expect(failure?.unreadableFields).toHaveLength(2)
+    expect(failure).toEqual({
+      fieldErrors: {
+        startDateTime: [UNREADABLE_VALUE],
+        'gameType.selections.rounds': [UNREADABLE_VALUE],
+      },
+      formMessages: [],
+    })
   })
 
   it('reports an unexplained failure as empty messages, keeping raw error text out', () => {
@@ -128,15 +257,10 @@ describe('toApiFailure', () => {
       }),
     )
 
-    expect(serverFault).toEqual({
-      fieldErrors: {},
-      formMessages: [],
-      unreadableFields: [],
-    })
+    expect(serverFault).toEqual({ fieldErrors: {}, formMessages: [] })
     expect(toApiFailure(new Error('Something went wrong'))).toEqual({
       fieldErrors: {},
       formMessages: [],
-      unreadableFields: [],
     })
   })
 
@@ -158,7 +282,6 @@ describe('toApiFailure', () => {
     expect(failure).toEqual({
       fieldErrors: { request: ['The request field is required.'] },
       formMessages: [],
-      unreadableFields: [],
     })
   })
 })

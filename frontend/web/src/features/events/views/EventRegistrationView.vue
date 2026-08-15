@@ -22,14 +22,19 @@ const props = defineProps<{
 
 const { event, isLoading, error, dataNotFound, load } = useEvent(() => props.eventId)
 
-const { registration, isRegistered, isSaving, failure, register, clearFailure } =
-  useEventRegistration(() => props.eventId)
+const { registration, isRegistered, isSaving, failure, register } = useEventRegistration(
+  () => props.eventId,
+)
 
-const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE, ['Name'])
+const { fieldError, formError, clearFieldErrors } = useFormFailure(
+  failure,
+  UNEXPECTED_FAILURE,
+  ['name'],
+)
 
 const name = ref('')
 
-watch(name, () => clearFailure())
+watch(name, () => clearFieldErrors())
 
 function submit() {
   void register({ name: name.value })
@@ -70,7 +75,7 @@ function submit() {
       <form v-else class="event-registration__form" @submit.prevent="submit">
         <AppErrorMessage :message="formError" />
 
-        <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('Name')">
+        <AppField v-slot="{ id, describedBy, invalid }" label="Name" :error="fieldError('name')">
           <input
             :id="id"
             v-model="name"

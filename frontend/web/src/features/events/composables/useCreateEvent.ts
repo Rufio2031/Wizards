@@ -7,15 +7,13 @@ import type { CreateEventRequest, GameEvent } from '../types/event'
  * Creates an event and reports why an attempt failed.
  *
  * @returns `isSaving`, the `failure` from the last attempt with its messages
- * split by the field the API blamed, `create`, which resolves to the created
- * event or to `null` when the attempt failed, and `clearFailure` to drop a
- * reported failure once the organizer starts correcting it.
+ * split by the field the API blamed, and `create`, which resolves to the created
+ * event or to `null` when the attempt failed.
  */
 export function useCreateEvent() {
   const {
     isLoading: isSaving,
     failure,
-    clearError: clearFailure,
     run,
   } = useAsyncRequest<GameEvent | null, CreateEventRequest>(
     (options, request) => eventsApi.create(request, options),
@@ -49,5 +47,5 @@ export function useCreateEvent() {
     }
   }
 
-  return { isSaving, failure, create, clearFailure }
+  return { isSaving, failure, create }
 }

@@ -105,7 +105,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             "Catan",
             TimeSpan.FromDays(6),
             TimeSpan.FromHours(4),
-            6,
+            4,
             null,
             []),
 
