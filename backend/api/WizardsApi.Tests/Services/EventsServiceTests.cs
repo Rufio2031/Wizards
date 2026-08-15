@@ -392,9 +392,76 @@ public sealed class EventsServiceTests
         Assert.Null(result.Value.Description);
     }
 
-    private GameType RegisterGameType()
+    [Fact]
+    public async Task AddEvent_ChosenValueIsNotOneTheSettingAccepts_ReturnsFailureKeyedToThatSetting()
     {
-        GameType gameType = GameType.Create("Magic: The Gathering");
+        GameType gameType = this.RegisterGameType(FormatSetting());
+
+        CreateEventRequest request = CreateRequest(
+            gameType.PublicId,
+            selections: new Dictionary<string, string> { ["format"] = "Pauper" });
+
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
+
+        Assert.Null(result.Value);
+        Assert.NotNull(result.Error);
+        Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
+        Assert.Equal("gameType.selections.format", result.Error.Key);
+        Assert.Equal(
+            $"The {gameType.Name} 'format' setting must be one of: Commander, Standard.",
+            result.Error.Message);
+
+        await this.eventsRepository.DidNotReceive().AddEventAsync(
+            Arg.Any<Event>(),
+            Arg.Any<CancellationToken>());
+        await this.unitOfWork.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AddEvent_ChosenKeyAndValueAreSpelledInAnotherCase_ReturnsThemAsTheSettingStoresThem()
+    {
+        GameType gameType = this.RegisterGameType(FormatSetting());
+
+        CreateEventRequest request = CreateRequest(
+            gameType.PublicId,
+            selections: new Dictionary<string, string> { ["FORMAT"] = "  sTaNdArD  " });
+
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
+
+        Assert.Null(result.Error);
+        Assert.NotNull(result.Value);
+        Assert.Equal(
+            new KeyValuePair<string, string>("format", "Standard"),
+            Assert.Single(result.Value.Selections));
+    }
+
+    [Fact]
+    public async Task AddEvent_OnlySomeSettingsAreChosen_ReturnsEverySettingIncludingTheDefaults()
+    {
+        GameType gameType = this.RegisterGameType(FormatSetting(), DeckSizeSetting());
+
+        CreateEventRequest request = CreateRequest(
+            gameType.PublicId,
+            selections: new Dictionary<string, string> { ["deckSize"] = "100" });
+
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
+
+        Assert.Null(result.Error);
+        Assert.NotNull(result.Value);
+        Assert.Equal(
+            new Dictionary<string, string> { ["format"] = "Commander", ["deckSize"] = "100" },
+            result.Value.Selections);
+
+        await this.eventsRepository.Received(1).AddEventAsync(
+            Arg.Is<Event>(added => added.Selections.Count == 2
+                && added.Selections.All(selection =>
+                    gameType.Settings.Contains(selection.GameTypeSetting))),
+            Arg.Any<CancellationToken>());
+    }
+
+    private GameType RegisterGameType(params GameTypeSetting[] settings)
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", settings);
 
         this.gameTypesRepository
             .GetGameTypeByPublicIdAsync(gameType.PublicId, Arg.Any<CancellationToken>())
@@ -402,6 +469,20 @@ public sealed class EventsServiceTests
 
         return gameType;
     }
+
+    private static GameTypeSetting FormatSetting() => GameTypeSetting.Create(
+        "format",
+        "Format",
+        SettingType.Enum,
+        "Commander",
+        null,
+        null,
+        null,
+        "Commander",
+        "Standard");
+
+    private static GameTypeSetting DeckSizeSetting() =>
+        GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 40, 250);
 
     private static Event CreateEvent()
     {

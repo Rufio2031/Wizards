@@ -384,7 +384,7 @@ public sealed class EventTests
     }
 
     [Fact]
-    public void Create_SelectionsCarryTwoValuesForTheSameSetting_ThrowsDomainExceptionWithoutAKey()
+    public void Create_SelectionsCarryTwoSettingsSharingAKeyIgnoringCase_ThrowsDomainExceptionWithoutAKey()
     {
         DomainException exception = Assert.Throws<DomainException>(() => Event.Create(
             "Friday Night Magic",
@@ -396,8 +396,8 @@ public sealed class EventTests
             8,
             selections:
             [
-                EventGameTypeSelection.Create("playerCount", "4"),
-                EventGameTypeSelection.Create("PLAYERCOUNT", "6")
+                EventGameTypeSelection.Create(PlayerCountSetting(), "4"),
+                EventGameTypeSelection.Create(PlayerCountSetting("PLAYERCOUNT"), "6")
             ]));
 
         Assert.Equal(
@@ -409,6 +409,9 @@ public sealed class EventTests
     [Fact]
     public void Create_SelectionsNameDifferentSettings_KeepsThemInTheOrderGiven()
     {
+        GameTypeSetting playerCount = PlayerCountSetting();
+        GameTypeSetting ranked = RankedSetting();
+
         Event created = Event.Create(
             "Friday Night Magic",
             null,
@@ -419,20 +422,20 @@ public sealed class EventTests
             8,
             selections:
             [
-                EventGameTypeSelection.Create("playerCount", "4"),
-                EventGameTypeSelection.Create("ranked", "true")
+                EventGameTypeSelection.Create(playerCount, "4"),
+                EventGameTypeSelection.Create(ranked, "true")
             ]);
 
         Assert.Equal(
-            new[] { "playerCount", "ranked" },
-            created.Selections.Select(selection => selection.Key));
+            new[] { playerCount, ranked },
+            created.Selections.Select(selection => selection.GameTypeSetting));
     }
 
     [Fact]
     public void Create_ArgumentsAreValid_ReturnsEventDescribedByTheArguments()
     {
         GameType gameType = AnyGameType();
-        EventGameTypeSelection selection = EventGameTypeSelection.Create("playerCount", "4");
+        EventGameTypeSelection selection = EventGameTypeSelection.Create(PlayerCountSetting(), "4");
 
         Event created = Event.Create(
             "Friday Night Magic",
@@ -513,7 +516,7 @@ public sealed class EventTests
     public void Reconstitute_StateIsSupplied_ReturnsEventCarryingItUnchanged()
     {
         GameType gameType = AnyGameType();
-        EventGameTypeSelection selection = EventGameTypeSelection.Create("playerCount", "4");
+        EventGameTypeSelection selection = EventGameTypeSelection.Create(PlayerCountSetting(), "4");
         Guid publicId = Guid.CreateVersion7();
 
         Event rehydrated = Event.Reconstitute(
@@ -578,7 +581,11 @@ public sealed class EventTests
         FutureEnd,
         registrationLimit);
 
-    private static GameType AnyGameType() => GameType.Create(
-        "Magic",
-        [GameTypeSetting.Create("playerCount", "Player count", SettingType.Int, "4", 2, 8)]);
+    private static GameType AnyGameType() => GameType.Create("Magic", [PlayerCountSetting()]);
+
+    private static GameTypeSetting PlayerCountSetting(string key = "playerCount") =>
+        GameTypeSetting.Create(key, "Player count", SettingType.Int, "4", 2, 8);
+
+    private static GameTypeSetting RankedSetting() =>
+        GameTypeSetting.Create("ranked", "Ranked", SettingType.Bool, "false");
 }

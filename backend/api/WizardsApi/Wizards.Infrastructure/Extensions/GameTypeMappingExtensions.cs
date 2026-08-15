@@ -53,7 +53,15 @@ internal static class GameTypeMappingExtensions
         };
     }
 
-    private static Domain.Entities.GameTypeSetting ToEntity(this Persistence.Records.GameTypeSetting settingRecord) =>
+    /// <summary>
+    /// Rehydrates the domain entity a stored game type setting represents.
+    /// </summary>
+    /// <param name="settingRecord">
+    /// The stored setting to translate. Its options are only carried across when the read that produced
+    /// it loaded them; otherwise the entity comes back listing none.
+    /// </param>
+    /// <returns>The rehydrated setting entity.</returns>
+    internal static Domain.Entities.GameTypeSetting ToEntity(this Persistence.Records.GameTypeSetting settingRecord) =>
         Domain.Entities.GameTypeSetting.Reconstitute(
             settingRecord.Id,
             settingRecord.Key,

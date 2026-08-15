@@ -76,19 +76,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.ToTable("event_game_type_selections");
             entity.HasKey(selection => selection.Id);
-            entity.Property(selection => selection.Key)
-                .IsRequired()
-                .HasMaxLength(Domain.Entities.GameTypeSetting.MaxKeyLength)
-                .UseCollation(CaseInsensitiveCollation);
             entity.Property(selection => selection.Value)
                 .IsRequired()
                 .HasMaxLength(Domain.Entities.GameTypeSetting.MaxValueLength);
-            entity.HasIndex(selection => new { selection.EventId, selection.Key }).IsUnique();
+            entity.HasIndex(selection => new { selection.EventId, selection.GameTypeSettingId }).IsUnique();
             entity.HasOne(selection => selection.Event)
                 .WithMany(storedEvent => storedEvent.Selections)
                 .HasForeignKey(selection => selection.EventId)
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(selection => selection.Setting)
+                .WithMany()
+                .HasForeignKey(selection => selection.GameTypeSettingId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Records.EventRegistration>(entity =>

@@ -330,9 +330,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
         DateTime startDateTime = seededAt + sampleEvent.StartsIn;
         DateTime endDateTime = startDateTime + sampleEvent.Runs;
 
-        IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(
-            sampleEvent.Selections?.Select(
-                selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+        IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(sampleEvent.Selections);
 
         if (sampleEvent.StartsIn < TimeSpan.Zero)
         {

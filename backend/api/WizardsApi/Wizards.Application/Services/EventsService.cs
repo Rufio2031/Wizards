@@ -70,9 +70,7 @@ internal sealed class EventsService(
 
         try
         {
-            selections = gameType.Validate(
-                request.GameType.Selections?.Select(
-                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+            selections = gameType.Validate(request.GameType.Selections);
         }
         catch (DomainException exception)
         {

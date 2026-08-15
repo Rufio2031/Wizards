@@ -40,7 +40,8 @@ public record EventResponse(
     /// </summary>
     /// <param name="event">
     /// The event to project. Must not be <see langword="null"/>, and must have been loaded with its
-    /// <see cref="Event.GameType"/> populated.
+    /// <see cref="Event.GameType"/> and the setting behind each of its
+    /// <see cref="Event.Selections"/> populated.
     /// </param>
     public EventResponse(Event @event)
         : this(
@@ -52,7 +53,9 @@ public record EventResponse(
             @event.EndDateTime,
             @event.RegistrationLimit,
             new GameTypeResponse(@event.GameType),
-            @event.Selections.ToDictionary(selection => selection.Key, selection => selection.Value))
+            @event.Selections.ToDictionary(
+                selection => selection.GameTypeSetting.Key,
+                selection => selection.Value))
     {
     }
 }

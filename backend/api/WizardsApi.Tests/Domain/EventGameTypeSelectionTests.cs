@@ -1,43 +1,28 @@
 using Wizards.Domain.Entities;
+using Wizards.Domain.Enums;
 using Wizards.Domain.Exceptions;
 
 namespace WizardsApi.Tests.Domain;
 
 public sealed class EventGameTypeSelectionTests
 {
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void Create_KeyIsMissing_ThrowsUnkeyedDomainException(string? key)
-    {
-        DomainException exception = Assert.Throws<DomainException>(
-            () => EventGameTypeSelection.Create(key!, "4"));
-
-        Assert.Equal("A game type setting key is required.", exception.Message);
-        Assert.Null(exception.Key);
-    }
-
     [Fact]
-    public void Create_KeyIsLongerThanTheMaximum_ThrowsUnkeyedDomainException()
+    public void Create_SettingIsNull_ThrowsArgumentNullException()
     {
-        DomainException exception = Assert.Throws<DomainException>(
-            () => EventGameTypeSelection.Create(new string('a', GameTypeSetting.MaxKeyLength + 1), "4"));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(
+            () => EventGameTypeSelection.Create(null!, "4"));
 
-        Assert.Equal(
-            $"A game type setting key cannot exceed {GameTypeSetting.MaxKeyLength} characters.",
-            exception.Message);
-        Assert.Null(exception.Key);
+        Assert.Equal("setting", exception.ParamName);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Create_ValueIsMissing_ThrowsDomainExceptionKeyedToTheTrimmedKey(string? value)
+    public void Create_ValueIsMissing_ThrowsDomainExceptionKeyedToTheSetting(string? value)
     {
         DomainException exception = Assert.Throws<DomainException>(
-            () => EventGameTypeSelection.Create("  playerCount  ", value!));
+            () => EventGameTypeSelection.Create(IntSetting(), value!));
 
         Assert.Equal("A value is required for the 'playerCount' setting.", exception.Message);
         Assert.Equal("playerCount", exception.Key);
@@ -47,8 +32,8 @@ public sealed class EventGameTypeSelectionTests
     public void Create_ValueIsLongerThanTheMaximum_ThrowsDomainExceptionKeyedToTheSetting()
     {
         DomainException exception = Assert.Throws<DomainException>(() => EventGameTypeSelection.Create(
-            "playerCount",
-            new string('a', GameTypeSetting.MaxValueLength + 1)));
+            IntSetting(),
+            new string('9', GameTypeSetting.MaxValueLength + 1)));
 
         Assert.Equal(
             $"The value chosen for the 'playerCount' setting cannot exceed {GameTypeSetting.MaxValueLength} characters.",
@@ -56,34 +41,80 @@ public sealed class EventGameTypeSelectionTests
         Assert.Equal("playerCount", exception.Key);
     }
 
-    [Fact]
-    public void Create_KeyAndValueOnlyFitOnceTrimmed_IsAccepted()
+    [Theory]
+    [InlineData("1")]
+    [InlineData("9")]
+    [InlineData("four")]
+    public void Create_SettingDoesNotAcceptTheValue_ThrowsDomainExceptionKeyedToTheSetting(string value)
     {
-        string key = new('a', GameTypeSetting.MaxKeyLength);
-        string value = new('b', GameTypeSetting.MaxValueLength);
+        DomainException exception = Assert.Throws<DomainException>(
+            () => EventGameTypeSelection.Create(IntSetting(), value));
 
-        EventGameTypeSelection created = EventGameTypeSelection.Create($"  {key}  ", $"  {value}  ");
-
-        Assert.Equal(key, created.Key);
-        Assert.Equal(value, created.Value);
+        Assert.Equal(
+            "The value chosen for the 'playerCount' setting must be a whole number between 2 and 8.",
+            exception.Message);
+        Assert.Equal("playerCount", exception.Key);
     }
 
     [Fact]
-    public void Create_KeyAndValueCarrySurroundingWhitespace_TrimsThem()
+    public void Create_EnumValueIsSpelledInAnotherCase_StoresTheOptionsOwnCasing()
     {
-        EventGameTypeSelection created = EventGameTypeSelection.Create("  playerCount  ", "  4  ");
+        EventGameTypeSelection created = EventGameTypeSelection.Create(EnumSetting(), "sTaNdArD");
 
-        Assert.Equal("playerCount", created.Key);
-        Assert.Equal("4", created.Value);
+        Assert.Equal("Standard", created.Value);
     }
 
     [Fact]
-    public void Create_ArgumentsAreValid_ReturnsSelectionCarryingThem()
+    public void Create_IntValueCarriesSurroundingWhitespace_StoresItTrimmed()
     {
-        EventGameTypeSelection created = EventGameTypeSelection.Create("playerCount", "4");
+        EventGameTypeSelection created = EventGameTypeSelection.Create(IntSetting(), "  6  ");
 
-        Assert.Equal("playerCount", created.Key);
-        Assert.Equal("4", created.Value);
+        Assert.Equal("6", created.Value);
+    }
+
+    [Fact]
+    public void Create_IntValueCarriesLeadingZeros_StoresItAsAPlainNumber()
+    {
+        EventGameTypeSelection created = EventGameTypeSelection.Create(IntSetting(), "006");
+
+        Assert.Equal("6", created.Value);
+    }
+
+    [Fact]
+    public void Create_ArgumentsAreValid_ReturnsSelectionCarryingTheSettingItWasChosenFor()
+    {
+        GameTypeSetting setting = IntSetting();
+
+        EventGameTypeSelection created = EventGameTypeSelection.Create(setting, "6");
+
+        Assert.Same(setting, created.GameTypeSetting);
+        Assert.Equal("6", created.Value);
         Assert.Equal(0, created.Id);
     }
+
+    [Fact]
+    public void Reconstitute_ValueWouldBeRejectedByCreate_AppliesNoValidation()
+    {
+        GameTypeSetting setting = IntSetting();
+
+        EventGameTypeSelection rehydrated = EventGameTypeSelection.Reconstitute(42, setting, "  99  ");
+
+        Assert.Equal(42, rehydrated.Id);
+        Assert.Same(setting, rehydrated.GameTypeSetting);
+        Assert.Equal("  99  ", rehydrated.Value);
+    }
+
+    private static GameTypeSetting IntSetting() =>
+        GameTypeSetting.Create("playerCount", "Player count", SettingType.Int, "4", 2, 8);
+
+    private static GameTypeSetting EnumSetting() => GameTypeSetting.Create(
+        "format",
+        "Format",
+        SettingType.Enum,
+        "Commander",
+        null,
+        null,
+        null,
+        "Commander",
+        "Standard");
 }

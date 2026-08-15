@@ -10,7 +10,7 @@ internal static class EventMappingExtensions
     /// </summary>
     /// <param name="eventRecord">
     /// The stored event to translate. Its game type must already have been loaded, since the entity
-    /// cannot exist without one.
+    /// cannot exist without one, as must the setting behind each of its selections.
     /// </param>
     /// <returns>The rehydrated event entity, carrying its game type and instants marked UTC.</returns>
     internal static Domain.Entities.Event ToEntity(this Persistence.Records.Event eventRecord)
@@ -31,7 +31,7 @@ internal static class EventMappingExtensions
                 .OrderBy(selection => selection.Id)
                 .Select(selection => Domain.Entities.EventGameTypeSelection.Reconstitute(
                     selection.Id,
-                    selection.Key,
+                    selection.Setting.ToEntity(),
                     selection.Value))
                 .ToList());
     }
@@ -40,8 +40,9 @@ internal static class EventMappingExtensions
     /// Projects an event entity onto the record shape the database stores.
     /// </summary>
     /// <remarks>
-    /// Only the game type's foreign key is carried across. The navigation is deliberately left unset so
-    /// that saving an event never inserts or updates the game type it points at.
+    /// Only the foreign keys of the game type and of the setting behind each selection are carried
+    /// across. Their navigations are deliberately left unset so that saving an event never inserts or
+    /// updates the reference data it points at.
     /// </remarks>
     /// <param name="eventEntity">The event to translate.</param>
     /// <returns>
@@ -67,7 +68,7 @@ internal static class EventMappingExtensions
                 .Select(selection => new Persistence.Records.EventGameTypeSelection
                 {
                     Id = selection.Id,
-                    Key = selection.Key,
+                    GameTypeSettingId = selection.GameTypeSetting.Id,
                     Value = selection.Value
                 })
                 .ToList()

@@ -272,10 +272,10 @@ public class Event
 
         foreach (EventGameTypeSelection selection in selections)
         {
-            if (!seenKeys.Add(selection.Key))
+            if (!seenKeys.Add(selection.GameTypeSetting.Key))
             {
                 throw new DomainException(
-                    $"An event cannot carry two values for the '{selection.Key}' setting.");
+                    $"An event cannot carry two values for the '{selection.GameTypeSetting.Key}' setting.");
             }
         }
     }

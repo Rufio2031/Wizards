@@ -87,34 +87,25 @@ public class GameType
     /// </summary>
     /// <remarks>Each value comes back in the form its setting stores it in.</remarks>
     /// <param name="selections">
-    /// The settings the organizer chose, in any order, or null to accept every default.
+    /// The values the organizer chose, keyed by the setting they were chosen for and matched without
+    /// regard to case, or null to accept every default.
     /// </param>
     /// <returns>
     /// One selection per setting this game type exposes, in the same order as <see cref="Settings"/>.
     /// </returns>
-    /// <exception cref="ArgumentException">Thrown when a chosen setting is null.</exception>
     /// <exception cref="DomainException">
-    /// Thrown when the chosen settings break a rule this game type states.
+    /// Thrown when a chosen key is missing or too long, or when the chosen values break a rule this
+    /// game type states.
     /// </exception>
-    public IReadOnlyList<EventGameTypeSelection> Validate(IEnumerable<EventGameTypeSelection>? selections)
+    public IReadOnlyList<EventGameTypeSelection> Validate(IReadOnlyDictionary<string, string>? selections)
     {
-        List<EventGameTypeSelection> chosen = selections?.ToList() ?? [];
-
-        if (chosen.Any(selection => selection is null))
-        {
-            throw new ArgumentException("A chosen setting cannot be null.", nameof(selections));
-        }
-
         Dictionary<string, string> chosenValues = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (EventGameTypeSelection selection in chosen)
+        if (selections is not null)
         {
-            if (!chosenValues.TryAdd(selection.Key, selection.Value))
+            foreach (KeyValuePair<string, string> selection in selections)
             {
-                throw new DomainException($"The '{selection.Key}' setting was chosen more than once.")
-                {
-                    Key = selection.Key
-                };
+                chosenValues[ValidateAndNormalizeSelectionKey(selection.Key)] = selection.Value;
             }
         }
 
@@ -124,7 +115,7 @@ public class GameType
         {
             if (!chosenValues.Remove(setting.Key, out string? value))
             {
-                validated.Add(EventGameTypeSelection.Create(setting.Key, setting.DefaultValue));
+                validated.Add(EventGameTypeSelection.Create(setting, setting.DefaultValue));
 
                 continue;
             }
@@ -138,7 +129,7 @@ public class GameType
                 };
             }
 
-            validated.Add(EventGameTypeSelection.Create(setting.Key, setting.Normalize(value)));
+            validated.Add(EventGameTypeSelection.Create(setting, value));
         }
 
         // Each setting removed the value chosen for it, so anything still here names no setting.
@@ -153,6 +144,24 @@ public class GameType
         }
 
         return validated;
+    }
+
+    private static string ValidateAndNormalizeSelectionKey(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new DomainException("A game type setting key is required.");
+        }
+
+        key = key.Trim();
+
+        if (key.Length > GameTypeSetting.MaxKeyLength)
+        {
+            throw new DomainException(
+                $"A game type setting key cannot exceed {GameTypeSetting.MaxKeyLength} characters.");
+        }
+
+        return key;
     }
 
     private static string ValidateAndNormalizeName(string name)
@@ -179,8 +188,6 @@ public class GameType
             throw new ArgumentException("A game type setting cannot be null.", nameof(settings));
         }
 
-        // Selections name the setting they were chosen for by key, so two settings sharing a key would
-        // leave which of them a chosen value answered undecidable.
         HashSet<string> seenKeys = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (GameTypeSetting setting in settings)

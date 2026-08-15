@@ -83,10 +83,6 @@ internal sealed class CalendarInviteService(
     /// <summary>
     /// States the game alongside whatever the organizer wrote.
     /// </summary>
-    /// <remarks>
-    /// The event's settings are left out. They are carried by key, and the labels that would read well
-    /// belong to the game type's template, which this read does not load.
-    /// </remarks>
     private static string BuildDescription(Event @event)
     {
         List<string> lines = [];

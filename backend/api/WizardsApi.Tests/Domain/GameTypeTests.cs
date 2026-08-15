@@ -111,13 +111,17 @@ public sealed class GameTypeTests
     [Fact]
     public void Validate_SelectionsAreNull_ReturnsEverySettingAtItsDefault()
     {
-        GameType gameType = GameType.Create("Magic", [IntSetting(), BoolSetting(), EnumSetting()]);
+        GameTypeSetting playerCount = IntSetting();
+        GameTypeSetting ranked = BoolSetting();
+        GameTypeSetting format = EnumSetting();
+
+        GameType gameType = GameType.Create("Magic", [playerCount, ranked, format]);
 
         IReadOnlyList<EventGameTypeSelection> validated = gameType.Validate(null);
 
         Assert.Equal(
-            new[] { "playerCount", "ranked", "format" },
-            validated.Select(selection => selection.Key));
+            new[] { playerCount, ranked, format },
+            validated.Select(selection => selection.GameTypeSetting));
         Assert.Equal(
             new[] { "4", "false", "Commander" },
             validated.Select(selection => selection.Value));
@@ -126,50 +130,134 @@ public sealed class GameTypeTests
     [Fact]
     public void Validate_SelectionsAreEmpty_ReturnsEverySettingAtItsDefault()
     {
-        GameType gameType = GameType.Create("Magic", [IntSetting()]);
+        GameTypeSetting playerCount = IntSetting();
 
-        EventGameTypeSelection validated = Assert.Single(gameType.Validate([]));
+        GameType gameType = GameType.Create("Magic", [playerCount]);
 
-        Assert.Equal("playerCount", validated.Key);
+        EventGameTypeSelection validated = Assert.Single(
+            gameType.Validate(new Dictionary<string, string>()));
+
+        Assert.Same(playerCount, validated.GameTypeSetting);
         Assert.Equal("4", validated.Value);
     }
 
-    [Fact]
-    public void Validate_SelectionsContainANullEntry_ThrowsArgumentException()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_ChosenKeyIsBlank_ThrowsUnkeyedDomainException(string key)
     {
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(
-            () => gameType.Validate([null!]));
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string> { [key] = "6" }));
 
-        Assert.Equal("selections", exception.ParamName);
-        Assert.StartsWith("A chosen setting cannot be null.", exception.Message);
+        Assert.Equal("A game type setting key is required.", exception.Message);
+        Assert.Null(exception.Key);
     }
 
     [Fact]
-    public void Validate_SameSettingIsChosenTwice_ThrowsDomainExceptionKeyedToTheSecondChoice()
+    public void Validate_ChosenKeyIsLongerThanTheMaximum_ThrowsUnkeyedDomainException()
     {
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
-        DomainException exception = Assert.Throws<DomainException>(() => gameType.Validate(
-        [
-            EventGameTypeSelection.Create("playerCount", "4"),
-            EventGameTypeSelection.Create("PLAYERCOUNT", "6")
-        ]));
+        string key = new('a', GameTypeSetting.MaxKeyLength + 1);
 
-        Assert.Equal("The 'PLAYERCOUNT' setting was chosen more than once.", exception.Message);
-        Assert.Equal("PLAYERCOUNT", exception.Key);
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string> { [key] = "6" }));
+
+        Assert.Equal(
+            $"A game type setting key cannot exceed {GameTypeSetting.MaxKeyLength} characters.",
+            exception.Message);
+        Assert.Null(exception.Key);
+    }
+
+    [Fact]
+    public void Validate_AKeyIsBlankAndAnotherValueIsRejected_ReportsTheBlankKeyFirst()
+    {
+        GameType gameType = GameType.Create("Magic", [IntSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["playerCount"] = "99",
+                ["   "] = "6"
+            }));
+
+        Assert.Equal("A game type setting key is required.", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_ChosenKeyCarriesSurroundingWhitespace_MatchesTheSetting()
+    {
+        GameTypeSetting playerCount = IntSetting();
+
+        GameType gameType = GameType.Create("Magic", [playerCount]);
+
+        EventGameTypeSelection validated = Assert.Single(
+            gameType.Validate(new Dictionary<string, string> { ["  playerCount  "] = "6" }));
+
+        Assert.Same(playerCount, validated.GameTypeSetting);
+        Assert.Equal("6", validated.Value);
+    }
+
+    [Fact]
+    public void Validate_ChosenValueIsNull_ThrowsDomainExceptionKeyedToTheSetting()
+    {
+        GameType gameType = GameType.Create("Magic", [IntSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string> { ["playerCount"] = null! }));
+
+        Assert.Equal(
+            "The Magic 'playerCount' setting must be a whole number between 2 and 8.",
+            exception.Message);
+        Assert.Equal("playerCount", exception.Key);
     }
 
     [Fact]
     public void Validate_OnlySomeSettingsAreChosen_FillsTheRestWithTheirDefaults()
     {
-        GameType gameType = GameType.Create("Magic", [IntSetting(), BoolSetting()]);
+        GameTypeSetting playerCount = IntSetting();
+        GameTypeSetting ranked = BoolSetting();
+
+        GameType gameType = GameType.Create("Magic", [playerCount, ranked]);
 
         IReadOnlyList<EventGameTypeSelection> validated = gameType.Validate(
-            [EventGameTypeSelection.Create("ranked", "true")]);
+            new Dictionary<string, string> { ["ranked"] = "true" });
 
+        Assert.Equal(
+            new[] { playerCount, ranked },
+            validated.Select(selection => selection.GameTypeSetting));
         Assert.Equal(new[] { "4", "true" }, validated.Select(selection => selection.Value));
+    }
+
+    [Fact]
+    public void Validate_TwoSettingsAcceptTheSameValue_PairsEachValueWithTheSettingItWasChosenFor()
+    {
+        GameTypeSetting minimumPlayers = IntSetting("minimumPlayers");
+        GameTypeSetting maximumPlayers = IntSetting("maximumPlayers");
+
+        GameType gameType = GameType.Create("Magic", [minimumPlayers, maximumPlayers]);
+
+        IReadOnlyList<EventGameTypeSelection> validated = gameType.Validate(
+            new Dictionary<string, string>
+            {
+                ["maximumPlayers"] = "8",
+                ["minimumPlayers"] = "2"
+            });
+
+        Assert.Collection(
+            validated,
+            selection =>
+            {
+                Assert.Same(minimumPlayers, selection.GameTypeSetting);
+                Assert.Equal("2", selection.Value);
+            },
+            selection =>
+            {
+                Assert.Same(maximumPlayers, selection.GameTypeSetting);
+                Assert.Equal("8", selection.Value);
+            });
     }
 
     [Theory]
@@ -182,7 +270,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
         DomainException exception = Assert.Throws<DomainException>(
-            () => gameType.Validate([EventGameTypeSelection.Create("playerCount", chosen)]));
+            () => gameType.Validate(new Dictionary<string, string> { ["playerCount"] = chosen }));
 
         Assert.Equal(
             "The Magic 'playerCount' setting must be a whole number between 2 and 8.",
@@ -196,7 +284,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [BoolSetting()]);
 
         DomainException exception = Assert.Throws<DomainException>(
-            () => gameType.Validate([EventGameTypeSelection.Create("ranked", "yes")]));
+            () => gameType.Validate(new Dictionary<string, string> { ["ranked"] = "yes" }));
 
         Assert.Equal("The Magic 'ranked' setting must be true or false.", exception.Message);
         Assert.Equal("ranked", exception.Key);
@@ -208,7 +296,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [EnumSetting()]);
 
         DomainException exception = Assert.Throws<DomainException>(
-            () => gameType.Validate([EventGameTypeSelection.Create("format", "Pauper")]));
+            () => gameType.Validate(new Dictionary<string, string> { ["format"] = "Pauper" }));
 
         Assert.Equal(
             "The Magic 'format' setting must be one of: Commander, Standard.",
@@ -217,14 +305,16 @@ public sealed class GameTypeTests
     }
 
     [Fact]
-    public void Validate_SelectionNamesASettingIgnoringCase_MatchesTheSettingAndUsesItsKey()
+    public void Validate_ChosenKeyNamesASettingIgnoringCase_MatchesTheSetting()
     {
-        GameType gameType = GameType.Create("Magic", [IntSetting()]);
+        GameTypeSetting playerCount = IntSetting();
+
+        GameType gameType = GameType.Create("Magic", [playerCount]);
 
         EventGameTypeSelection validated = Assert.Single(
-            gameType.Validate([EventGameTypeSelection.Create("PLAYERCOUNT", "6")]));
+            gameType.Validate(new Dictionary<string, string> { ["PLAYERCOUNT"] = "6" }));
 
-        Assert.Equal("playerCount", validated.Key);
+        Assert.Same(playerCount, validated.GameTypeSetting);
         Assert.Equal("6", validated.Value);
     }
 
@@ -234,7 +324,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
         EventGameTypeSelection validated = Assert.Single(
-            gameType.Validate([EventGameTypeSelection.Create("playerCount", "006")]));
+            gameType.Validate(new Dictionary<string, string> { ["playerCount"] = "006" }));
 
         Assert.Equal("6", validated.Value);
     }
@@ -249,7 +339,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [BoolSetting()]);
 
         EventGameTypeSelection validated = Assert.Single(
-            gameType.Validate([EventGameTypeSelection.Create("ranked", chosen)]));
+            gameType.Validate(new Dictionary<string, string> { ["ranked"] = chosen }));
 
         Assert.Equal(expected, validated.Value);
     }
@@ -260,21 +350,22 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic", [EnumSetting()]);
 
         EventGameTypeSelection validated = Assert.Single(
-            gameType.Validate([EventGameTypeSelection.Create("format", "sTaNdArD")]));
+            gameType.Validate(new Dictionary<string, string> { ["format"] = "sTaNdArD" }));
 
         Assert.Equal("Standard", validated.Value);
     }
 
     [Fact]
-    public void Validate_SelectionNamesASettingTheGameTypeDoesNotExpose_ThrowsDomainExceptionKeyedToIt()
+    public void Validate_ChosenKeyNamesASettingTheGameTypeDoesNotExpose_ThrowsDomainExceptionKeyedToIt()
     {
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
-        DomainException exception = Assert.Throws<DomainException>(() => gameType.Validate(
-        [
-            EventGameTypeSelection.Create("playerCount", "6"),
-            EventGameTypeSelection.Create("deckSize", "60")
-        ]));
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["playerCount"] = "6",
+                ["deckSize"] = "60"
+            }));
 
         Assert.Equal("Magic has no 'deckSize' setting.", exception.Message);
         Assert.Equal("deckSize", exception.Key);
@@ -286,7 +377,7 @@ public sealed class GameTypeTests
         GameType gameType = GameType.Create("Magic");
 
         DomainException exception = Assert.Throws<DomainException>(
-            () => gameType.Validate([EventGameTypeSelection.Create("deckSize", "60")]));
+            () => gameType.Validate(new Dictionary<string, string> { ["deckSize"] = "60" }));
 
         Assert.Equal("Magic has no 'deckSize' setting.", exception.Message);
         Assert.Equal("deckSize", exception.Key);
@@ -297,11 +388,12 @@ public sealed class GameTypeTests
     {
         GameType gameType = GameType.Create("Magic", [IntSetting()]);
 
-        DomainException exception = Assert.Throws<DomainException>(() => gameType.Validate(
-        [
-            EventGameTypeSelection.Create("playerCount", "99"),
-            EventGameTypeSelection.Create("deckSize", "60")
-        ]));
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["playerCount"] = "99",
+                ["deckSize"] = "60"
+            }));
 
         Assert.Equal("playerCount", exception.Key);
     }
@@ -315,18 +407,23 @@ public sealed class GameTypeTests
     [Fact]
     public void Validate_EverySettingIsChosen_ReturnsThemInTheOrderTheGameTypeExposesThem()
     {
-        GameType gameType = GameType.Create("Magic", [IntSetting(), BoolSetting(), EnumSetting()]);
+        GameTypeSetting playerCount = IntSetting();
+        GameTypeSetting ranked = BoolSetting();
+        GameTypeSetting format = EnumSetting();
+
+        GameType gameType = GameType.Create("Magic", [playerCount, ranked, format]);
 
         IReadOnlyList<EventGameTypeSelection> validated = gameType.Validate(
-        [
-            EventGameTypeSelection.Create("format", "Standard"),
-            EventGameTypeSelection.Create("ranked", "true"),
-            EventGameTypeSelection.Create("playerCount", "6")
-        ]);
+            new Dictionary<string, string>
+            {
+                ["format"] = "Standard",
+                ["ranked"] = "true",
+                ["playerCount"] = "6"
+            });
 
         Assert.Equal(
-            new[] { "playerCount", "ranked", "format" },
-            validated.Select(selection => selection.Key));
+            new[] { playerCount, ranked, format },
+            validated.Select(selection => selection.GameTypeSetting));
         Assert.Equal(
             new[] { "6", "true", "Standard" },
             validated.Select(selection => selection.Value));
