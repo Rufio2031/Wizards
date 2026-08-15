@@ -2,13 +2,7 @@ using Wizards.Domain.Exceptions;
 
 namespace Wizards.Domain.Entities;
 
-/// <summary>
-/// One setting an organizer settled for an event, as a key and the value chosen for it.
-/// </summary>
-/// <remarks>
-/// A selection is a copy taken when the event was created, not a pointer at the game type's setting,
-/// so later edits to the game type leave a scheduled event as it was booked.
-/// </remarks>
+/// <summary>One setting an organizer settled for an event, as a key and the value chosen for it.</summary>
 public class EventGameTypeSelection
 {
     /// <summary>Gets the primary key of the selection.</summary>
@@ -26,15 +20,18 @@ public class EventGameTypeSelection
     /// Creates a selection that has never been persisted, trimming the key and value before their
     /// lengths are checked.
     /// </summary>
-    /// <remarks>
-    /// This checks only that a key and a value are present and short enough. It does not check the
-    /// value against the setting the key names, because a selection holds no reference to the game
-    /// type. <see cref="GameType.Validate"/> does that check.
-    /// </remarks>
+    /// <remarks>The value is not checked against the setting the key names.</remarks>
+    /// <param name="key">
+    /// The key of the game type setting being settled, capped at
+    /// <see cref="GameTypeSetting.MaxKeyLength"/> characters once trimmed.
+    /// </param>
+    /// <param name="value">
+    /// The value chosen for that setting, capped at <see cref="GameTypeSetting.MaxValueLength"/>
+    /// characters once trimmed.
+    /// </param>
     /// <returns>The new selection, carrying no primary key.</returns>
     /// <exception cref="DomainException">
-    /// Thrown when <paramref name="key"/> or <paramref name="value"/> is <see langword="null"/>,
-    /// empty, whitespace, or too long.
+    /// Thrown when the key or the value is missing or too long.
     /// </exception>
     public static EventGameTypeSelection Create(string key, string value)
     {
@@ -48,13 +45,14 @@ public class EventGameTypeSelection
         };
     }
 
-    /// <summary>
-    /// Rebuilds a selection from already-persisted state, applying no validation.
-    /// </summary>
+    /// <summary>Rebuilds a selection from already-persisted state, applying no validation.</summary>
     /// <remarks>
-    /// This is for persistence mapping only. Callers creating a selection for the first time must use
-    /// <see cref="Create(string, string)"/>, which enforces the entity's invariants.
+    /// This is for persistence mapping only, and a new selection must come from
+    /// <see cref="Create(string, string)"/>.
     /// </remarks>
+    /// <param name="id">The stored primary key of the selection.</param>
+    /// <param name="key">The stored key of the game type setting the value was chosen for.</param>
+    /// <param name="value">The stored value, as text.</param>
     /// <returns>The rehydrated selection.</returns>
     public static EventGameTypeSelection Reconstitute(int id, string key, string value) =>
         new()
@@ -86,7 +84,7 @@ public class EventGameTypeSelection
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new DomainException($"A value is required for the '{key}' setting.");
+            throw new DomainException($"A value is required for the '{key}' setting.") { Key = key };
         }
 
         value = value.Trim();
@@ -94,7 +92,10 @@ public class EventGameTypeSelection
         if (value.Length > GameTypeSetting.MaxValueLength)
         {
             throw new DomainException(
-                $"The value chosen for the '{key}' setting cannot exceed {GameTypeSetting.MaxValueLength} characters.");
+                $"The value chosen for the '{key}' setting cannot exceed {GameTypeSetting.MaxValueLength} characters.")
+            {
+                Key = key
+            };
         }
 
         return value;

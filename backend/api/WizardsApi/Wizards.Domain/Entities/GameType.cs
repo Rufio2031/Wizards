@@ -2,13 +2,10 @@ using Wizards.Domain.Exceptions;
 
 namespace Wizards.Domain.Entities;
 
-/// <summary>
-/// Represents a game that in-store events can be played with.
-/// </summary>
+/// <summary>Represents a game that in-store events can be played with.</summary>
 /// <remarks>
 /// What varies between one game and the next is carried as <see cref="Settings"/> rather than as
-/// fields, so registering a game played by rules the application has never seen is a matter of
-/// listing different settings rather than of changing the schema.
+/// fields.
 /// </remarks>
 public class GameType
 {
@@ -26,32 +23,24 @@ public class GameType
     /// <summary>Gets the display name of the game type.</summary>
     public string Name { get; private set; } = string.Empty;
 
-    /// <summary>
-    /// Gets the settings or rules this game type exposes, in the order they were supplied.
-    /// </summary>
+    /// <summary>Gets the settings this game type exposes, in the order they were supplied.</summary>
     public IReadOnlyList<GameTypeSetting> Settings => this.settings;
 
     private GameType() { }
 
     /// <summary>
-    /// Creates a game type that has never been persisted, assigning it a new identifier.
+    /// Creates a game type that has never been persisted and assigns it a new identifier.
     /// </summary>
     /// <param name="name">
-    /// The display name of the game type. Surrounding whitespace is trimmed before the length is
-    /// checked, so a name that only fits once trimmed is accepted.
+    /// The display name of the game type, trimmed before its length is checked.
     /// </param>
     /// <param name="settings">
-    /// The settings the game type exposes, kept in the order given, or <see langword="null"/> when it
-    /// exposes none.
+    /// The settings the game type exposes, kept in the order given, or null when it exposes none.
     /// </param>
     /// <returns>The new game type, carrying its assigned identifier and no primary key.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="settings"/> contains a null entry.
-    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when a setting is null.</exception>
     /// <exception cref="DomainException">
-    /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or longer
-    /// than <see cref="MaxNameLength"/> characters once trimmed, or when <paramref name="settings"/>
-    /// names the same key twice.
+    /// Thrown when the name is missing or too long, or the same setting key appears twice.
     /// </exception>
     public static GameType Create(string name, IEnumerable<GameTypeSetting>? settings = null)
     {
@@ -69,13 +58,10 @@ public class GameType
         };
     }
 
-    /// <summary>
-    /// Rebuilds a game type from already-persisted state, applying no validation.
-    /// </summary>
+    /// <summary>Rebuilds a game type from already-persisted state, applying no validation.</summary>
     /// <remarks>
-    /// This is for persistence mapping only. Callers creating a game type for the first time must use
-    /// <see cref="Create(string, IEnumerable{GameTypeSetting})"/>, which enforces the entity's
-    /// invariants.
+    /// This is for persistence mapping only, and a new game type must come from
+    /// <see cref="Create(string, IEnumerable{GameTypeSetting})"/>.
     /// </remarks>
     /// <param name="id">The stored primary key of the game type.</param>
     /// <param name="publicId">The stored identifier of the game type.</param>
@@ -99,23 +85,16 @@ public class GameType
     /// Checks the settings an organizer chose against what this game type exposes, filling in the ones
     /// they left alone.
     /// </summary>
-    /// <remarks>
-    /// Every setting this game type exposes appears in the result, whether it was chosen or defaulted,
-    /// and each value comes back in the form its setting stores it in.
-    /// </remarks>
+    /// <remarks>Each value comes back in the form its setting stores it in.</remarks>
     /// <param name="selections">
-    /// The settings the organizer chose, in any order, or <see langword="null"/> to accept every
-    /// default.
+    /// The settings the organizer chose, in any order, or null to accept every default.
     /// </param>
     /// <returns>
     /// One selection per setting this game type exposes, in the same order as <see cref="Settings"/>.
     /// </returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="selections"/> contains a null entry.
-    /// </exception>
+    /// <exception cref="ArgumentException">Thrown when a chosen setting is null.</exception>
     /// <exception cref="DomainException">
-    /// Thrown when a setting is chosen more than once, when a choice names a setting this game type
-    /// does not expose, or when a chosen value is not one its setting allows.
+    /// Thrown when the chosen settings break a rule this game type states.
     /// </exception>
     public IReadOnlyList<EventGameTypeSelection> Validate(IEnumerable<EventGameTypeSelection>? selections)
     {

@@ -26,25 +26,18 @@ public class Event
     public string Name { get; private set; } = string.Empty;
 
     /// <summary>
-    /// The long-form description of the event, or <see langword="null"/> when the organizer has not
-    /// supplied one.
+    /// The long-form description of the event, never empty, or null when the organizer supplied none.
     /// </summary>
     public string? Description { get; private set; }
 
-    /// <summary>
-    /// Where the event is held, as the organizer wrote it. Stated on the calendar invite, so an event
-    /// always carries one.
-    /// </summary>
+    /// <summary>Where the event is held, as the organizer wrote it.</summary>
     public string Location { get; private set; } = string.Empty;
 
-    /// <summary>
-    /// The instant the event begins, in UTC. Always carries <see cref="DateTimeKind.Utc"/>.
-    /// </summary>
+    /// <summary>The instant the event begins, in UTC.</summary>
     public DateTime StartDateTime { get; private set; }
 
     /// <summary>
-    /// The instant the event ends, in UTC. Always carries <see cref="DateTimeKind.Utc"/> and falls
-    /// strictly after <see cref="StartDateTime"/>.
+    /// The instant the event ends, in UTC, falling strictly after <see cref="StartDateTime"/>.
     /// </summary>
     public DateTime EndDateTime { get; private set; }
 
@@ -52,8 +45,7 @@ public class Event
     public GameType GameType { get; private set; } = null!;
 
     /// <summary>
-    /// The settings the organizer settled for this event, one per setting the game type exposed when
-    /// the event was created.
+    /// The settings the organizer settled for this event, one per setting the game type exposed.
     /// </summary>
     public IReadOnlyList<EventGameTypeSelection> Selections => this.selections;
 
@@ -64,18 +56,14 @@ public class Event
 
     private Event() { }
 
-    /// <summary>
-    /// Creates an event that has never been persisted, assigning it a new identifier.
-    /// </summary>
-    /// <param name="name">
-    /// The display name of the event. Surrounding whitespace is trimmed before the length is checked.
-    /// </param>
+    /// <summary>Creates an event that has never been persisted and assigns it a new identifier.</summary>
+    /// <param name="name">The display name of the event, trimmed before its length is checked.</param>
     /// <param name="description">
-    /// The long-form description of the event, trimmed when supplied, or <see langword="null"/> for an
-    /// event without one.
+    /// The long-form description of the event, trimmed when supplied, where null or whitespace leaves
+    /// the event without one.
     /// </param>
     /// <param name="location">
-    /// Where the event is held. Required, and trimmed before the length is checked.
+    /// Where the event is held, required and trimmed before its length is checked.
     /// </param>
     /// <param name="gameType">The game the event is played with.</param>
     /// <param name="startDateTime">
@@ -85,32 +73,18 @@ public class Event
     /// The instant the event ends, which must be UTC and fall strictly after
     /// <paramref name="startDateTime"/>.
     /// </param>
-    /// <returns>The new event, carrying its assigned identifier and no primary key.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="gameType"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when either instant is not <see cref="DateTimeKind.Utc"/>, or when
-    /// <paramref name="selections"/> contains a null entry.
-    /// </exception>
     /// <param name="registrationLimit">
     /// How many players the event accepts, at least one and no more than
-    /// <see cref="MaxRegistrationLimit"/>, or <see langword="null"/> for an event that accepts as many
-    /// as one can.
+    /// <see cref="MaxRegistrationLimit"/>.
     /// </param>
-    /// <param name="selections">
-    /// The settings settled for the event, stored as given. Whether they satisfy the game type is a
-    /// rule the game type states, so the caller resolves it and calls
-    /// <see cref="GameType.Validate"/> before reaching here.
-    /// </param>
+    /// <param name="selections">The settings settled for the event, stored as given.</param>
+    /// <returns>The new event, carrying its assigned identifier and no primary key.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when the game type is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when either instant is not UTC or a selection is null.
+    /// </exception>
     /// <exception cref="DomainException">
-    /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
-    /// when <paramref name="description"/> is too long, when <paramref name="location"/> is
-    /// <see langword="null"/>, empty, whitespace, or too long, when <paramref name="startDateTime"/> is
-    /// in the past, when <paramref name="endDateTime"/> does not fall after
-    /// <paramref name="startDateTime"/>, when <paramref name="registrationLimit"/> falls outside the
-    /// allowed range, or when <paramref name="selections"/> carry two values for the same setting. The
-    /// message states the rule that was broken and is safe to report to the originator of the request.
+    /// Thrown when any supplied detail breaks a rule about what makes a valid event.
     /// </exception>
     public static Event Create(
         string name,
@@ -119,7 +93,7 @@ public class Event
         GameType gameType,
         DateTime startDateTime,
         DateTime endDateTime,
-        int? registrationLimit = null,
+        int registrationLimit,
         IEnumerable<EventGameTypeSelection>? selections = null)
     {
         ArgumentNullException.ThrowIfNull(gameType);
@@ -130,9 +104,7 @@ public class Event
 
         ValidateSchedule(startDateTime, endDateTime);
 
-        int limit = registrationLimit ?? MaxRegistrationLimit;
-
-        ValidateRegistrationLimit(limit);
+        ValidateRegistrationLimit(registrationLimit);
 
         List<EventGameTypeSelection> eventSelections = selections?.ToList() ?? [];
 
@@ -147,17 +119,14 @@ public class Event
             GameType = gameType,
             StartDateTime = startDateTime,
             EndDateTime = endDateTime,
-            RegistrationLimit = limit,
+            RegistrationLimit = registrationLimit,
             selections = eventSelections
         };
     }
 
-    /// <summary>
-    /// Rebuilds an event from already-persisted state, applying no validation.
-    /// </summary>
+    /// <summary>Rebuilds an event from already-persisted state, applying no validation.</summary>
     /// <remarks>
-    /// This is for persistence mapping only. Callers creating an event for the first time must use
-    /// <see cref="Create"/>, which enforces the entity's invariants.
+    /// This is for persistence mapping only, and a new event must come from <see cref="Create"/>.
     /// </remarks>
     /// <param name="id">The stored primary key of the event.</param>
     /// <param name="publicId">The stored identifier of the event.</param>
@@ -199,21 +168,11 @@ public class Event
             selections = selections?.ToList() ?? []
         };
 
-    /// <summary>
-    /// Reports whether the event has taken every registration it accepts.
-    /// </summary>
-    /// <remarks>
-    /// The count is supplied rather than held, because an event is read without its registrations and
-    /// the number of them is only ever true for the instant it was counted. A caller acting on the
-    /// answer races anything registering alongside it, so the store enforces the same limit as the
-    /// last word.
-    /// </remarks>
+    /// <summary>Reports whether the event has taken every registration it accepts.</summary>
     /// <param name="registrationCount">How many players are registered for the event.</param>
-    /// <returns>
-    /// <see langword="true"/> when the event will accept no further registrations.
-    /// </returns>
+    /// <returns>True when the event will accept no further registrations.</returns>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown when <paramref name="registrationCount"/> is negative.
+    /// Thrown when the registration count is negative.
     /// </exception>
     public bool IsFull(int registrationCount)
     {
@@ -226,14 +185,17 @@ public class Event
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new DomainException("Event name is required.");
+            throw new DomainException("Event name is required.") { Key = nameof(Name) };
         }
 
         name = name.Trim();
 
         if (name.Length > MaxNameLength)
         {
-            throw new DomainException($"Event name cannot exceed {MaxNameLength} characters.");
+            throw new DomainException($"Event name cannot exceed {MaxNameLength} characters.")
+            {
+                Key = nameof(Name)
+            };
         }
 
         return name;
@@ -241,7 +203,7 @@ public class Event
 
     private static string? ValidateAndNormalizeDescription(string? description)
     {
-        if (description is null)
+        if (string.IsNullOrWhiteSpace(description))
         {
             return null;
         }
@@ -250,7 +212,10 @@ public class Event
 
         if (description.Length > MaxDescriptionLength)
         {
-            throw new DomainException($"Event description cannot exceed {MaxDescriptionLength} characters.");
+            throw new DomainException($"Event description cannot exceed {MaxDescriptionLength} characters.")
+            {
+                Key = nameof(Description)
+            };
         }
 
         return description;
@@ -260,14 +225,17 @@ public class Event
     {
         if (string.IsNullOrWhiteSpace(location))
         {
-            throw new DomainException("Event location is required.");
+            throw new DomainException("Event location is required.") { Key = nameof(Location) };
         }
 
         location = location.Trim();
 
         if (location.Length > MaxLocationLength)
         {
-            throw new DomainException($"Event location cannot exceed {MaxLocationLength} characters.");
+            throw new DomainException($"Event location cannot exceed {MaxLocationLength} characters.")
+            {
+                Key = nameof(Location)
+            };
         }
 
         return location;
@@ -277,13 +245,19 @@ public class Event
     {
         if (registrationLimit < 1)
         {
-            throw new DomainException("An event must accept at least one player.");
+            throw new DomainException("An event must accept at least one player.")
+            {
+                Key = nameof(RegistrationLimit)
+            };
         }
 
         if (registrationLimit > MaxRegistrationLimit)
         {
             throw new DomainException(
-                $"An event cannot accept more than {MaxRegistrationLimit} players.");
+                $"An event cannot accept more than {MaxRegistrationLimit} players.")
+            {
+                Key = nameof(RegistrationLimit)
+            };
         }
     }
 
@@ -301,10 +275,7 @@ public class Event
             if (!seenKeys.Add(selection.Key))
             {
                 throw new DomainException(
-                    $"An event cannot carry two values for the '{selection.Key}' setting.")
-                {
-                    Key = selection.Key
-                };
+                    $"An event cannot carry two values for the '{selection.Key}' setting.");
             }
         }
     }
@@ -325,12 +296,18 @@ public class Event
 
         if (startDateTime < DateTime.UtcNow)
         {
-            throw new DomainException("Event start date and time cannot be in the past.");
+            throw new DomainException("Event start date and time cannot be in the past.")
+            {
+                Key = nameof(StartDateTime)
+            };
         }
 
         if (startDateTime >= endDateTime)
         {
-            throw new DomainException("Event start date and time must be before the end date and time.");
+            throw new DomainException("Event start date and time must be before the end date and time.")
+            {
+                Key = nameof(EndDateTime)
+            };
         }
     }
 }

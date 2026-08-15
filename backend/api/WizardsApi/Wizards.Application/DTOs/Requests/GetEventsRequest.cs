@@ -5,40 +5,35 @@ using Wizards.Domain.Extensions;
 
 namespace Wizards.Application.DTOs.Requests;
 
-/// <summary>
-/// The paging window, ordering and date range supplied when listing events.
-/// </summary>
+/// <summary>The paging window, ordering and date range supplied when listing events.</summary>
 /// <remarks>
 /// Events are paged over a stable ordering, so a window only shifts when events are inserted or
-/// removed ahead of it. Every member is optional, so a caller that supplies nothing reads the first
-/// <see cref="DefaultTake"/> events by start date and time, earliest first, over an open range.
+/// removed ahead of it.
 /// </remarks>
 /// <param name="Skip">
-/// The number of events to pass over before the page begins. Zero or greater, and defaults to
-/// <see cref="DefaultSkip"/>. A window starting past the end is served as an empty page, not an error.
+/// The number of events to pass over before the page begins, zero or greater, defaulting to
+/// <see cref="DefaultSkip"/>.
 /// </param>
 /// <param name="Take">
-/// The maximum number of events the page carries. At least one, capped at <see cref="MaxTake"/>, and
-/// defaults to <see cref="DefaultTake"/>.
+/// The maximum number of events the page carries, at least one, capped at <see cref="MaxTake"/> and
+/// defaulting to <see cref="DefaultTake"/>.
 /// </param>
 /// <param name="SortBy">
-/// The property the events are ordered by. Defaults to
-/// <see cref="EventSortField.StartDateTime"/>. A value outside the defined set is rejected rather
-/// than falling back to the default.
+/// The property the events are ordered by, defaulting to
+/// <see cref="EventSortField.StartDateTime"/> and rejected when outside the defined set.
 /// </param>
 /// <param name="SortDirection">
-/// The direction the ordering runs in, checked the same way as <paramref name="SortBy"/>. Defaults
-/// to <see cref="Wizards.Domain.Enums.SortDirection.Ascending"/>.
+/// The direction the ordering runs in, checked the same way as <paramref name="SortBy"/> and
+/// defaulting to <see cref="Wizards.Domain.Enums.SortDirection.Ascending"/>.
 /// </param>
 /// <param name="StartingOnOrAfter">
-/// The lower bound on when an event starts, compared inclusively, so an event starting at exactly
-/// this instant is carried. Sent as an ISO 8601 date and time down to at least the minute, such as
-/// <c>2026-08-13T16:00:00Z</c>, and omitted to leave the range open at that end.
+/// The inclusive lower bound on when an event starts, sent as an ISO 8601 date and time down to at
+/// least the minute such as <c>2026-08-13T16:00:00Z</c>, and omitted to leave the range open at that
+/// end.
 /// </param>
 /// <param name="StartingBefore">
-/// The upper bound on when an event starts, compared exclusively, so an event starting at exactly
-/// this instant is left off. Written the same way as <paramref name="StartingOnOrAfter"/>, and must
-/// not fall before it.
+/// The exclusive upper bound on when an event starts, written the same way as
+/// <paramref name="StartingOnOrAfter"/> and not falling before it.
 /// </param>
 public record GetEventsRequest(
     [Range(0, int.MaxValue)]
@@ -66,32 +61,15 @@ public record GetEventsRequest(
     /// <summary>The largest page a caller may ask for.</summary>
     public const int MaxTake = 100;
 
-    /// <summary>
-    /// The instant <see cref="StartingOnOrAfter"/> denotes, in UTC, which every consumer reads in
-    /// place of the bound value.
-    /// </summary>
-    /// <remarks>
-    /// The framework's query string binder resolves a value carrying <c>Z</c> or an offset against the
-    /// host's zone, yielding <see cref="DateTimeKind.Local"/>, and leaves a zoneless value
-    /// <see cref="DateTimeKind.Unspecified"/>, so two bounds written in different forms are comparable
-    /// neither with each other nor with a stored instant until they are resolved here.
-    /// </remarks>
+    /// <summary>The instant <see cref="StartingOnOrAfter"/> denotes, in UTC.</summary>
     public DateTime? StartingOnOrAfterUtc => this.StartingOnOrAfter.ToUtcInstant();
 
-    /// <summary>
-    /// The instant <see cref="StartingBefore"/> denotes, in UTC, resolved in the same way as
-    /// <see cref="StartingOnOrAfterUtc"/>.
-    /// </summary>
+    /// <summary>The instant <see cref="StartingBefore"/> denotes, in UTC.</summary>
     public DateTime? StartingBeforeUtc => this.StartingBefore.ToUtcInstant();
 
-    /// <summary>
-    /// Reports an inverted date range rather than leaving it to be served as an empty page.
-    /// </summary>
-    /// <remarks>
-    /// The bounds are compared as the instants <see cref="StartingOnOrAfterUtc"/> and
-    /// <see cref="StartingBeforeUtc"/> resolve them to. Equal bounds select nothing and are accepted.
-    /// </remarks>
-    /// <param name="validationContext">The context the request is being validated in. Not consulted.</param>
+    /// <summary>Reports an inverted date range.</summary>
+    /// <remarks>Equal bounds select nothing and are accepted.</remarks>
+    /// <param name="validationContext">The context the request is being validated in.</param>
     /// <returns>A failure naming both bounds when the range is inverted, and nothing otherwise.</returns>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

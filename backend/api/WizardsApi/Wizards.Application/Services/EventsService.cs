@@ -53,6 +53,7 @@ internal sealed class EventsService(
     public async Task<EventWriteResult> AddEvent(CreateEventRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(request.GameType);
 
         GameType? gameType = await gameTypesRepository.GetGameTypeByPublicIdAsync(
             request.GameType.GameTypeId,
@@ -63,14 +64,24 @@ internal sealed class EventsService(
             return EventWriteResult.Failure(EventErrors.GameTypeNotFound);
         }
 
+        IReadOnlyList<EventGameTypeSelection> selections;
+
+        try
+        {
+            selections = gameType.Validate(
+                request.GameType.Selections?.Select(
+                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
+        }
+        catch (DomainException exception)
+        {
+            return EventWriteResult.Failure(
+                EventErrors.InvalidSelection(exception.Message, exception.Key));
+        }
+
         Event @event;
 
         try
         {
-            IReadOnlyList<EventGameTypeSelection> selections = gameType.Validate(
-                request.GameType.Selections?.Select(
-                    selection => EventGameTypeSelection.Create(selection.Key, selection.Value)));
-
             @event = Event.Create(
                 request.Name,
                 request.Description,
@@ -83,10 +94,7 @@ internal sealed class EventsService(
         }
         catch (DomainException exception)
         {
-            return EventWriteResult.Failure(
-                exception.Key is { } settingKey
-                    ? EventErrors.InvalidSelection(exception.Message, settingKey)
-                    : EventErrors.Invalid(exception.Message));
+            return EventWriteResult.Failure(EventErrors.Invalid(exception.Message, exception.Key));
         }
 
         await eventsRepository.AddEventAsync(@event, cancellationToken);
