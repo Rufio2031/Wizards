@@ -9,6 +9,10 @@ namespace WizardsApi.Tests.Services;
 
 public sealed class CalendarInviteServiceTests
 {
+    private const string OrganizerEmailAddress = "events@wizardsassessment.local";
+
+    private const string OrganizerName = "The Wizard's Table";
+
     private static readonly Guid EventId = new("3f2f6d7e-6f4a-4f2b-9d1a-9c5a4b3c2d1e");
 
     private readonly IEventsRepository eventsRepository = Substitute.For<IEventsRepository>();
@@ -20,10 +24,7 @@ public sealed class CalendarInviteServiceTests
     {
         this.timeProvider.GetUtcNow().Returns(new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero));
 
-        this.calendarInviteService = new CalendarInviteService(
-            this.eventsRepository,
-            new CalendarInviteSettings("wizards.local"),
-            this.timeProvider);
+        this.calendarInviteService = this.CreateService(OrganizerName);
     }
 
     [Fact]
@@ -140,10 +141,80 @@ public sealed class CalendarInviteServiceTests
             PropertyLine(content, "DESCRIPTION"));
     }
 
+    [Fact]
+    public async Task GetInvite_InviteIsBuilt_WritesTheConfiguredOrganizerAsAMailtoAddressCarryingTheConfiguredName()
+    {
+        string content = await this.Serialize();
+
+        Assert.Equal(
+            $"ORGANIZER;CN={OrganizerName}:mailto:{OrganizerEmailAddress}",
+            ContentLine(content, "ORGANIZER"));
+    }
+
+    [Fact]
+    public async Task GetInvite_OrganizerNameCarriesABackslash_WritesItOnceWhileTheTextFieldsWriteTheirsDoubled()
+    {
+        string content = await this.Serialize(
+            name: @"Hall \ Room",
+            location: @"Hall \ Room",
+            service: this.CreateService(@"The Wizard \ Table"));
+
+        Assert.Equal(
+            $@"ORGANIZER;CN=The Wizard \ Table:mailto:{OrganizerEmailAddress}",
+            ContentLine(content, "ORGANIZER"));
+        Assert.Equal(@"SUMMARY:Hall \\ Room", PropertyLine(content, "SUMMARY"));
+        Assert.Equal(@"LOCATION:Hall \\ Room", PropertyLine(content, "LOCATION"));
+    }
+
+    [Fact]
+    public async Task GetInvite_OrganizerNameCarriesADoubledBackslash_WritesTwoRatherThanFour()
+    {
+        string content = await this.Serialize(service: this.CreateService(@"The Wizard \\ Table"));
+
+        Assert.Equal(
+            $@"ORGANIZER;CN=The Wizard \\ Table:mailto:{OrganizerEmailAddress}",
+            ContentLine(content, "ORGANIZER"));
+    }
+
+    [Theory]
+    [InlineData("The: Wizard's Table")]
+    [InlineData("The; Wizard's Table")]
+    [InlineData("The, Wizard's Table")]
+    public async Task GetInvite_OrganizerNameCarriesACharacterAParameterValueCannotHoldRaw_WritesItQuotedRatherThanEscaped(
+        string organizerName)
+    {
+        string content = await this.Serialize(service: this.CreateService(organizerName));
+
+        Assert.Equal(
+            $"ORGANIZER;CN=\"{organizerName}\":mailto:{OrganizerEmailAddress}",
+            ContentLine(content, "ORGANIZER"));
+    }
+
+    [Fact]
+    public async Task GetInvite_InviteIsBuilt_WritesExactlyOneOrganizerAsThePublishMethodRequires()
+    {
+        string content = await this.Serialize();
+
+        Assert.Contains("METHOD:PUBLISH", content, StringComparison.Ordinal);
+        Assert.Single(
+            Unfold(content).Split(["\r\n", "\n"], StringSplitOptions.None),
+            line => line.StartsWith("ORGANIZER", StringComparison.Ordinal));
+    }
+
+    private CalendarInviteService CreateService(string organizerName) =>
+        new(
+            this.eventsRepository,
+            new CalendarInviteSettings(
+                "wizards.local",
+                new Uri($"mailto:{OrganizerEmailAddress}"),
+                organizerName),
+            this.timeProvider);
+
     private async Task<string> Serialize(
         string name = "Friday Night Magic",
         string location = "Store Front Room",
-        string? description = "A weekly casual tournament.")
+        string? description = "A weekly casual tournament.",
+        CalendarInviteService? service = null)
     {
         Event @event = Event.Reconstitute(
             1,
@@ -160,7 +231,7 @@ public sealed class CalendarInviteServiceTests
             .GetEventByPublicIdAsync(EventId, Arg.Any<CancellationToken>())
             .Returns(@event);
 
-        CalendarInvite? invite = await this.calendarInviteService.GetInvite(
+        CalendarInvite? invite = await (service ?? this.calendarInviteService).GetInvite(
             EventId,
             CancellationToken.None);
 
@@ -173,16 +244,25 @@ public sealed class CalendarInviteServiceTests
     /// Reads a property back as one logical line, undoing the 75-octet folding RFC 5545 requires so an
     /// assertion sees the value the serializer wrote rather than where it wrapped.
     /// </summary>
-    private static string PropertyLine(string content, string propertyName)
-    {
-        string unfolded = content
+    private static string PropertyLine(string content, string propertyName) =>
+        Assert.Single(
+            Unfold(content).Split(["\r\n", "\n"], StringSplitOptions.None),
+            line => line.StartsWith($"{propertyName}:", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Reads a property back as one logical line where the property carries parameters, which sit
+    /// between the name and the <c>:</c> that opens the value.
+    /// </summary>
+    private static string ContentLine(string content, string propertyName) =>
+        Assert.Single(
+            Unfold(content).Split(["\r\n", "\n"], StringSplitOptions.None),
+            line => line.StartsWith($"{propertyName};", StringComparison.Ordinal)
+                || line.StartsWith($"{propertyName}:", StringComparison.Ordinal));
+
+    private static string Unfold(string content) =>
+        content
             .Replace("\r\n ", string.Empty, StringComparison.Ordinal)
             .Replace("\r\n\t", string.Empty, StringComparison.Ordinal)
             .Replace("\n ", string.Empty, StringComparison.Ordinal)
             .Replace("\n\t", string.Empty, StringComparison.Ordinal);
-
-        return Assert.Single(
-            unfolded.Split(["\r\n", "\n"], StringSplitOptions.None),
-            line => line.StartsWith($"{propertyName}:", StringComparison.Ordinal));
-    }
 }

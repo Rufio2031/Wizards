@@ -94,8 +94,8 @@ public class GameType
     /// One selection per setting this game type exposes, in the same order as <see cref="Settings"/>.
     /// </returns>
     /// <exception cref="DomainException">
-    /// Thrown when a chosen key is missing or too long, or when the chosen values break a rule this
-    /// game type states.
+    /// Thrown when a chosen key is missing or too long, when two chosen keys name the same setting,
+    /// or when the chosen values break a rule this game type states.
     /// </exception>
     public IReadOnlyList<EventGameTypeSelection> Validate(IReadOnlyDictionary<string, string>? selections)
     {
@@ -105,7 +105,18 @@ public class GameType
         {
             foreach (KeyValuePair<string, string> selection in selections)
             {
-                chosenValues[ValidateAndNormalizeSelectionKey(selection.Key)] = selection.Value;
+                string key = ValidateAndNormalizeSelectionKey(selection.Key);
+
+                if (!chosenValues.TryAdd(key, selection.Value))
+                {
+                    string chosenSettingKey = this.FindSettingKey(key);
+
+                    throw new DomainException(
+                        $"Only one value can be chosen for the {this.Name} '{chosenSettingKey}' setting.")
+                    {
+                        Key = chosenSettingKey
+                    };
+                }
             }
         }
 
@@ -145,6 +156,11 @@ public class GameType
 
         return validated;
     }
+
+    private string FindSettingKey(string key) =>
+        this.settings
+            .FirstOrDefault(setting => string.Equals(setting.Key, key, StringComparison.OrdinalIgnoreCase))
+            ?.Key ?? key;
 
     private static string ValidateAndNormalizeSelectionKey(string key)
     {

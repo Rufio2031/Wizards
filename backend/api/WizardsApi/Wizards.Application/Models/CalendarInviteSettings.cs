@@ -4,8 +4,11 @@ namespace Wizards.Application.Models;
 /// The deployment-specific values a calendar invite carries.
 /// </summary>
 /// <param name="UidDomain">
-/// The domain every invite's identifier is qualified with, such as <c>wizards.local</c>. RFC 5545
-/// borrows email address syntax for that identifier so a domain's ownership makes it unique across
-/// calendar systems. No mail is sent to it.
+/// The domain every invite's identifier is qualified with, such as <c>wizards.local</c>. No mail is
+/// sent to it.
 /// </param>
-public record CalendarInviteSettings(string UidDomain);
+/// <param name="OrganizerAddress">
+/// The address every invite names as its organizer, as a <c>mailto</c> URI. No mail is sent to it.
+/// </param>
+/// <param name="OrganizerName">The display name written beside the organizer's address.</param>
+public record CalendarInviteSettings(string UidDomain, Uri OrganizerAddress, string OrganizerName);

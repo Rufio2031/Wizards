@@ -24,10 +24,6 @@ internal sealed class CalendarInviteService(
     /// <summary>Names the software that produced the invite, as RFC 5545 requires.</summary>
     private const string ProductId = "-//Wizards//Event Calendar//EN";
 
-    /// <summary>
-    /// Offers an event rather than inviting anyone to it. An invitation names an organizer and its
-    /// attendees and expects replies, none of which exists while there is no account to send it from.
-    /// </summary>
     private const string PublishMethod = "PUBLISH";
 
     private const string UtcTimeZoneId = "UTC";
@@ -55,6 +51,11 @@ internal sealed class CalendarInviteService(
             Summary = EscapeBackslashes(@event.Name),
             Location = EscapeBackslashes(@event.Location),
             Description = EscapeBackslashes(BuildDescription(@event)),
+            Organizer = new Organizer
+            {
+                Value = settings.OrganizerAddress,
+                CommonName = settings.OrganizerName
+            },
             DtStart = ToCalendarDateTime(@event.StartDateTime),
             DtEnd = ToCalendarDateTime(@event.EndDateTime),
             DtStamp = ToCalendarDateTime(timeProvider.GetUtcNow().UtcDateTime),

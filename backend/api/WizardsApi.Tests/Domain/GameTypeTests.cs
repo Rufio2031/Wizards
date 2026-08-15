@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Wizards.Domain.Entities;
 using Wizards.Domain.Enums;
 using Wizards.Domain.Exceptions;
@@ -198,6 +200,125 @@ public sealed class GameTypeTests
 
         Assert.Same(playerCount, validated.GameTypeSetting);
         Assert.Equal("6", validated.Value);
+    }
+
+    [Fact]
+    public void Validate_TwoChosenKeysNameTheSameSetting_ThrowsDomainExceptionKeyedToTheSetting()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["format"] = "Modern",
+                ["FORMAT"] = "Standard"
+            }));
+
+        Assert.Equal(
+            "Only one value can be chosen for the Magic: The Gathering 'format' setting.",
+            exception.Message);
+        Assert.Equal("format", exception.Key);
+    }
+
+    [Fact]
+    public void Validate_TheSettingsOwnCasingArrivesSecond_StillReportsTheSettingsCasing()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["FORMAT"] = "Standard",
+                ["format"] = "Modern"
+            }));
+
+        Assert.Equal(
+            "Only one value can be chosen for the Magic: The Gathering 'format' setting.",
+            exception.Message);
+        Assert.Equal("format", exception.Key);
+    }
+
+    [Fact]
+    public void Validate_TwoChosenKeysOnlyCollideOnceTrimmed_ThrowsDomainExceptionKeyedToTheSetting()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["format"] = "Modern",
+                ["  Format  "] = "Standard"
+            }));
+
+        Assert.Equal(
+            "Only one value can be chosen for the Magic: The Gathering 'format' setting.",
+            exception.Message);
+        Assert.Equal("format", exception.Key);
+    }
+
+    [Fact]
+    public void Validate_CollidingKeysNameNoSetting_ReportsTheKeyAsSent()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        DomainException exception = Assert.Throws<DomainException>(
+            () => gameType.Validate(new Dictionary<string, string>
+            {
+                ["sideboard"] = "15",
+                ["SIDEBOARD"] = "10"
+            }));
+
+        Assert.Equal(
+            "Only one value can be chosen for the Magic: The Gathering 'SIDEBOARD' setting.",
+            exception.Message);
+        Assert.Equal("SIDEBOARD", exception.Key);
+    }
+
+    [Fact]
+    public void Validate_ChosenKeysNameDifferentSettings_AcceptsBothValues()
+    {
+        GameTypeSetting format = FormatSetting();
+        GameTypeSetting deckSize = DeckSizeSetting();
+
+        GameType gameType = GameType.Create("Magic: The Gathering", [format, deckSize]);
+
+        IReadOnlyList<EventGameTypeSelection> validated = gameType.Validate(
+            new Dictionary<string, string>
+            {
+                ["format"] = "Modern",
+                ["deckSize"] = "60"
+            });
+
+        Assert.Equal(
+            new[] { format, deckSize },
+            validated.Select(selection => selection.GameTypeSetting));
+        Assert.Equal(new[] { "Modern", "60" }, validated.Select(selection => selection.Value));
+    }
+
+    [Fact]
+    public void Validate_ASingleKeyDiffersInCaseFromTheSetting_AcceptsItWithoutCollision()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        EventGameTypeSelection validated = Assert.Single(
+            gameType.Validate(new Dictionary<string, string> { ["FORMAT"] = "modern" }));
+
+        Assert.Equal("format", validated.GameTypeSetting.Key);
+        Assert.Equal("Modern", validated.Value);
+    }
+
+    [Fact]
+    public void Validate_JsonRepeatsTheSameKeyByteForByte_KnownGapKeepsTheLastValueSilently()
+    {
+        GameType gameType = GameType.Create("Magic: The Gathering", [FormatSetting()]);
+
+        // System.Text.Json collapses byte-identical keys, so the collision guard never sees the pair.
+        Dictionary<string, string> selections = JsonSerializer.Deserialize<Dictionary<string, string>>(
+            """{"format":"Modern","format":"Standard"}""")!;
+
+        EventGameTypeSelection validated = Assert.Single(gameType.Validate(selections));
+
+        Assert.Equal("Standard", validated.Value);
     }
 
     [Fact]
@@ -434,6 +555,22 @@ public sealed class GameTypeTests
 
     private static GameTypeSetting BoolSetting(string key = "ranked") =>
         GameTypeSetting.Create(key, "Ranked", SettingType.Bool, "false");
+
+    private static GameTypeSetting DeckSizeSetting() =>
+        GameTypeSetting.Create("deckSize", "Deck size", SettingType.Int, "60", 40, 250);
+
+    private static GameTypeSetting FormatSetting() =>
+        GameTypeSetting.Create(
+            "format",
+            "Format",
+            SettingType.Enum,
+            "Commander",
+            null,
+            null,
+            null,
+            "Commander",
+            "Modern",
+            "Standard");
 
     private static GameTypeSetting EnumSetting(string key = "format") =>
         GameTypeSetting.Create(

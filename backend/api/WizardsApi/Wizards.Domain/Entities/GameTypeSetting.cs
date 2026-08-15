@@ -89,7 +89,8 @@ public class GameTypeSetting
 
     /// <summary>
     /// Creates a setting that has never been persisted, trimming the key, label, description, and
-    /// default value before their lengths are checked.
+    /// default value before their lengths are checked. A null or whitespace description leaves the
+    /// setting without one.
     /// </summary>
     /// <returns>The new setting, carrying no primary key.</returns>
     /// <exception cref="ArgumentException">
@@ -303,7 +304,7 @@ public class GameTypeSetting
 
     private static string? ValidateAndNormalizeDescription(string key, string? description)
     {
-        if (description is null)
+        if (string.IsNullOrWhiteSpace(description))
         {
             return null;
         }
