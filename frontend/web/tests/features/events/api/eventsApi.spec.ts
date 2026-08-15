@@ -16,12 +16,27 @@ function pageResponse(): Response {
   )
 }
 
-function lastUrl(): string {
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
+function lastCall(): [string, RequestInit] {
   const call = fetchMock.mock.calls.at(-1)
 
   expect(call).toBeDefined()
 
-  return call![0] as string
+  return call as [string, RequestInit]
+}
+
+function lastUrl(): string {
+  return lastCall()[0]
+}
+
+function lastBody(): unknown {
+  return JSON.parse(lastCall()[1].body as string)
 }
 
 beforeEach(() => {
@@ -55,5 +70,34 @@ describe('eventsApi.list', () => {
     await eventsApi.list({ skip: 40, take: 20 })
 
     expect(lastUrl()).toBe('/api/events?skip=40&take=20')
+  })
+})
+
+describe('eventsApi.register', () => {
+  it('sends the player and the idempotency key that collapses retries', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ name: 'Merlin' }, 201))
+
+    const registration = await eventsApi.register('evt 1', {
+      name: 'Merlin',
+      idempotencyKey: '6f9619ff-8b86-d011-b42d-00cf4fc964ff',
+    })
+
+    expect(lastUrl()).toBe('/api/events/evt%201/registrations')
+    expect(lastBody()).toEqual({
+      name: 'Merlin',
+      idempotencyKey: '6f9619ff-8b86-d011-b42d-00cf4fc964ff',
+    })
+    expect(registration).toEqual({ name: 'Merlin' })
+  })
+
+  it('refuses to report a seat the response never described', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
+
+    await expect(
+      eventsApi.register('evt-1', {
+        name: 'Merlin',
+        idempotencyKey: '6f9619ff-8b86-d011-b42d-00cf4fc964ff',
+      }),
+    ).rejects.toThrow('Registering for the event returned no body.')
   })
 })

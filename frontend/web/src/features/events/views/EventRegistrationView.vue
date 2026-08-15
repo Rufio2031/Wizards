@@ -22,7 +22,7 @@ const props = defineProps<{
 
 const { event, isLoading, error, dataNotFound, load } = useEvent(() => props.eventId)
 
-const { isRegistered, isSaving, failure, register, clearFailure } =
+const { registration, isRegistered, isSaving, failure, register, clearFailure } =
   useEventRegistration(() => props.eventId)
 
 const { fieldError, formError } = useFormFailure(failure, UNEXPECTED_FAILURE)
@@ -61,8 +61,10 @@ function submit() {
 
       <EventCard class="event-registration__event" :event="event" />
 
-      <p v-if="isRegistered" class="event-registration__message">
-        We have your name down for this event. Show this screen at the table.
+      <p v-if="registration" class="event-registration__message">
+        We have you down for this event as
+        <strong>{{ registration.name }}</strong
+        >. Show this screen at the table.
       </p>
 
       <form v-else class="event-registration__form" @submit.prevent="submit">

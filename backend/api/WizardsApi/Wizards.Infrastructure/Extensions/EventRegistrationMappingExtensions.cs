@@ -22,7 +22,10 @@ internal static class EventRegistrationMappingExtensions
         ArgumentNullException.ThrowIfNull(registrationRecord);
         ArgumentNullException.ThrowIfNull(@event);
 
-        return Domain.Entities.EventRegistration.Reconstitute(@event, registrationRecord.Name);
+        return Domain.Entities.EventRegistration.Reconstitute(
+            @event,
+            registrationRecord.Name,
+            registrationRecord.IdempotencyKey);
     }
 
     /// <summary>
@@ -45,7 +48,8 @@ internal static class EventRegistrationMappingExtensions
         return new Persistence.Records.EventRegistration
         {
             EventId = registration.Event.Id,
-            Name = registration.Name
+            Name = registration.Name,
+            IdempotencyKey = registration.IdempotencyKey
         };
     }
 }

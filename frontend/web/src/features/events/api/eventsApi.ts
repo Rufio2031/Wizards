@@ -121,18 +121,21 @@ export const eventsApi = {
     return registrations
   },
 
-  // Resolving is the whole answer, so an empty body is the expected success and
-  // whatever the endpoint returns is ignored until there is a registration to
-  // address.
   async register(
     eventId: string,
     request: CreateRegistrationRequest,
     options?: RequestOptions,
-  ): Promise<void> {
-    await httpClient.post(
+  ): Promise<Registration> {
+    const registration = await httpClient.post<Registration>(
       `${EVENTS_PATH}/${encodeURIComponent(eventId)}/registrations`,
       request,
       options,
     )
+
+    if (!registration) {
+      throw new Error('Registering for the event returned no body.')
+    }
+
+    return registration
   },
 }

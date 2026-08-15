@@ -164,11 +164,11 @@ public sealed class EventsServiceTests
             .GetGameTypeByPublicIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns((GameType?)null);
 
-        EventWriteResult result = await this.eventsService.AddEvent(
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(
             CreateRequest(),
             CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.Equal(EventErrors.GameTypeNotFound, result.Error);
 
         await this.eventsRepository.DidNotReceive().AddEventAsync(
@@ -186,9 +186,9 @@ public sealed class EventsServiceTests
             gameType.PublicId,
             selections: new Dictionary<string, string> { ["   "] = "Commander" });
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("gameType.selections", result.Error.Key);
@@ -211,9 +211,9 @@ public sealed class EventsServiceTests
             gameType.PublicId,
             selections: new Dictionary<string, string> { [key] = "Commander" });
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("gameType.selections", result.Error.Key);
@@ -236,9 +236,9 @@ public sealed class EventsServiceTests
             gameType.PublicId,
             selections: new Dictionary<string, string> { ["format"] = "Commander" });
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("gameType.selections.format", result.Error.Key);
@@ -259,9 +259,9 @@ public sealed class EventsServiceTests
             gameType.PublicId,
             startDateTime: DateTime.UtcNow.AddDays(-1));
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("StartDateTime", result.Error.Key);
@@ -282,9 +282,9 @@ public sealed class EventsServiceTests
 
         request = request with { EndDateTime = request.StartDateTime };
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("EndDateTime", result.Error.Key);
@@ -308,9 +308,9 @@ public sealed class EventsServiceTests
             RegistrationLimit = Event.MaxRegistrationLimit + 1
         };
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
-        Assert.Null(result.Event);
+        Assert.Null(result.Value);
         Assert.NotNull(result.Error);
         Assert.Equal(ErrorKind.Invalid, result.Error.Kind);
         Assert.Equal("RegistrationLimit", result.Error.Key);
@@ -331,12 +331,12 @@ public sealed class EventsServiceTests
 
         CreateEventRequest request = CreateRequest(gameType.PublicId);
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
         Assert.Null(result.Error);
-        Assert.NotNull(result.Event);
+        Assert.NotNull(result.Value);
 
-        EventResponse createdEvent = result.Event;
+        EventResponse createdEvent = result.Value;
 
         Assert.NotEqual(Guid.Empty, createdEvent.EventId);
         Assert.Equal(request.Name, createdEvent.Name);
@@ -369,13 +369,13 @@ public sealed class EventsServiceTests
             Location = $"{location}   "
         };
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
         Assert.Null(result.Error);
-        Assert.NotNull(result.Event);
-        Assert.Equal(name, result.Event.Name);
-        Assert.Equal(description, result.Event.Description);
-        Assert.Equal(location, result.Event.Location);
+        Assert.NotNull(result.Value);
+        Assert.Equal(name, result.Value.Name);
+        Assert.Equal(description, result.Value.Description);
+        Assert.Equal(location, result.Value.Location);
     }
 
     [Fact]
@@ -385,11 +385,11 @@ public sealed class EventsServiceTests
 
         CreateEventRequest request = CreateRequest(gameType.PublicId) with { Description = "   " };
 
-        EventWriteResult result = await this.eventsService.AddEvent(request, CancellationToken.None);
+        WriteResult<EventResponse> result = await this.eventsService.AddEvent(request, CancellationToken.None);
 
         Assert.Null(result.Error);
-        Assert.NotNull(result.Event);
-        Assert.Null(result.Event.Description);
+        Assert.NotNull(result.Value);
+        Assert.Null(result.Value.Description);
     }
 
     private GameType RegisterGameType()

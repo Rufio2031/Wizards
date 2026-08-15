@@ -276,7 +276,7 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
             pendingEvents.Add((
                 eventRecord,
                 sampleEvent.RegisteredPlayers
-                    .Select(player => EventRegistration.Create(@event, player))
+                    .Select(player => EventRegistration.Create(@event, player, Guid.CreateVersion7()))
                     .ToList()));
         }
 
@@ -294,7 +294,8 @@ internal sealed class DatabaseSeeder(AppDbContext dbContext, ILogger<DatabaseSee
                 dbContext.EventRegistrations.Add(new Records.EventRegistration
                 {
                     EventId = eventRecord.Id,
-                    Name = registration.Name
+                    Name = registration.Name,
+                    IdempotencyKey = registration.IdempotencyKey
                 });
 
                 insertedRegistrations++;

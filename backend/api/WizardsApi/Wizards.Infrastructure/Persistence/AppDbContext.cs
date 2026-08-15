@@ -102,7 +102,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(registration => registration.Name)
                 .IsRequired()
                 .HasMaxLength(Domain.Entities.EventRegistration.MaxNameLength);
-            entity.HasIndex(registration => registration.EventId);
+            entity.Property(registration => registration.IdempotencyKey).IsRequired();
+            entity.HasIndex(registration => new { registration.EventId, registration.IdempotencyKey })
+                .IsUnique();
             entity.HasOne(registration => registration.Event)
                 .WithMany()
                 .HasForeignKey(registration => registration.EventId)

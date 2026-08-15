@@ -2,8 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { effectScope, type EffectScope } from 'vue'
 
 import { eventsApi } from '@/features/events/api/eventsApi'
-import { useEventRegistration } from '@/features/events/composables/useEventRegistration'
-import type { CreateRegistrationRequest } from '@/features/events/types/event'
+import {
+  useEventRegistration,
+  type RegisterRequest,
+} from '@/features/events/composables/useEventRegistration'
+import type { Registration } from '@/features/events/types/event'
 import { ApiError } from '@/services/http/ApiError'
 
 vi.mock('@/features/events/api/eventsApi', async (importOriginal) => {
@@ -13,7 +16,9 @@ vi.mock('@/features/events/api/eventsApi', async (importOriginal) => {
   return { eventsApi: { ...actual.eventsApi, register: vi.fn() } }
 })
 
-const merlin: CreateRegistrationRequest = { name: 'Merlin' }
+const merlin: RegisterRequest = { name: 'Merlin' }
+
+const seated: Registration = { name: 'Merlin' }
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -23,6 +28,12 @@ function deferred<T>() {
   })
 
   return { promise, resolve }
+}
+
+function sentKeys(): string[] {
+  return vi
+    .mocked(eventsApi.register)
+    .mock.calls.map(([, request]) => request.idempotencyKey)
 }
 
 const scopes: EffectScope[] = []
@@ -54,19 +65,19 @@ describe('useEventRegistration', () => {
       new ApiError(409, { detail: 'The event is full.' }),
     )
 
-    const { isRegistered, isSaving, failure, register } = runInScope(() =>
-      useEventRegistration('evt-1'),
-    )
+    const { registration, isRegistered, isSaving, failure, register } =
+      runInScope(() => useEventRegistration('evt-1'))
 
     await expect(register(merlin)).resolves.toBeUndefined()
 
+    expect(registration.value).toBeNull()
     expect(isRegistered.value).toBe(false)
     expect(isSaving.value).toBe(false)
     expect(failure.value).not.toBeNull()
   })
 
   it('joins the attempt already running instead of taking a second seat', async () => {
-    const pending = deferred<void>()
+    const pending = deferred<Registration>()
 
     vi.mocked(eventsApi.register).mockReturnValue(pending.promise)
 
@@ -77,7 +88,7 @@ describe('useEventRegistration', () => {
     const first = register(merlin)
     const second = register(merlin)
 
-    pending.resolve()
+    pending.resolve(seated)
 
     await Promise.all([first, second])
 
@@ -85,18 +96,39 @@ describe('useEventRegistration', () => {
     expect(isRegistered.value).toBe(true)
   })
 
-  it('lets the player try again after a failed attempt', async () => {
+  it('reuses the same idempotency key when the player tries again after a failure', async () => {
     vi.mocked(eventsApi.register)
       .mockRejectedValueOnce(new ApiError(503, { detail: 'Registry offline.' }))
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(seated)
 
-    const { isRegistered, register } = runInScope(() =>
+    const { registration, isRegistered, register } = runInScope(() =>
       useEventRegistration('evt-1'),
     )
 
-    await register(merlin)
-    await register(merlin)
+    await register({ name: 'Merlin' })
+    await register({ name: 'Merlyn' })
+
+    const [firstKey, secondKey] = sentKeys()
+
+    expect(firstKey).toBeTruthy()
+    expect(secondKey).toBe(firstKey)
 
     expect(isRegistered.value).toBe(true)
+    expect(registration.value).toEqual({ name: 'Merlin' })
+  })
+
+  it('gives each player their own idempotency key rather than one shared by the app', async () => {
+    vi.mocked(eventsApi.register).mockResolvedValue(seated)
+
+    const merlinSide = runInScope(() => useEventRegistration('evt-1'))
+    const circeSide = runInScope(() => useEventRegistration('evt-1'))
+
+    await merlinSide.register({ name: 'Merlin' })
+    await circeSide.register({ name: 'Circe' })
+
+    const [merlinKey, circeKey] = sentKeys()
+
+    expect(merlinKey).toBeTruthy()
+    expect(circeKey).not.toBe(merlinKey)
   })
 })

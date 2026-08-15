@@ -50,7 +50,9 @@ internal sealed class EventsService(
     }
 
     /// <inheritdoc />
-    public async Task<EventWriteResult> AddEvent(CreateEventRequest request, CancellationToken cancellationToken)
+    public async Task<WriteResult<EventResponse>> AddEvent(
+        CreateEventRequest request,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.GameType);
@@ -61,7 +63,7 @@ internal sealed class EventsService(
 
         if (gameType is null)
         {
-            return EventWriteResult.Failure(EventErrors.GameTypeNotFound);
+            return WriteResult<EventResponse>.Failure(EventErrors.GameTypeNotFound);
         }
 
         IReadOnlyList<EventGameTypeSelection> selections;
@@ -74,7 +76,7 @@ internal sealed class EventsService(
         }
         catch (DomainException exception)
         {
-            return EventWriteResult.Failure(
+            return WriteResult<EventResponse>.Failure(
                 EventErrors.InvalidSelection(exception.Message, exception.Key));
         }
 
@@ -94,12 +96,13 @@ internal sealed class EventsService(
         }
         catch (DomainException exception)
         {
-            return EventWriteResult.Failure(EventErrors.Invalid(exception.Message, exception.Key));
+            return WriteResult<EventResponse>.Failure(
+                EventErrors.Invalid(exception.Message, exception.Key));
         }
 
         await eventsRepository.AddEventAsync(@event, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return EventWriteResult.Success(new EventResponse(@event));
+        return WriteResult<EventResponse>.Success(new EventResponse(@event));
     }
 }

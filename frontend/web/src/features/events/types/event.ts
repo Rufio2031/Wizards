@@ -24,6 +24,7 @@ export interface GameEvent {
 
 export interface CreateRegistrationRequest {
   name: string
+  idempotencyKey: string
 }
 
 export interface Registration {

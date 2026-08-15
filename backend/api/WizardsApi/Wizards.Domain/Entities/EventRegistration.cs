@@ -26,6 +26,9 @@ public class EventRegistration
     /// <summary>Gets the name the player registered under.</summary>
     public string Name { get; private set; } = string.Empty;
 
+    /// <summary>Gets the key the player supplied to identify this registration attempt.</summary>
+    public Guid IdempotencyKey { get; private set; }
+
     private EventRegistration() { }
 
     /// <summary>
@@ -36,23 +39,36 @@ public class EventRegistration
     /// The name the player registers under. Surrounding whitespace is trimmed before the length is
     /// checked.
     /// </param>
+    /// <param name="idempotencyKey">
+    /// The key identifying this registration attempt, unique within the event.
+    /// </param>
     /// <returns>The new registration.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="event"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="DomainException">
-    /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long.
-    /// The failure names <see cref="Name"/> as the thing the rule is about, and the message states the
-    /// rule that was broken and is safe to report to the originator of the request.
+    /// Thrown when <paramref name="name"/> is <see langword="null"/>, empty, whitespace, or too long,
+    /// or when <paramref name="idempotencyKey"/> is <see cref="Guid.Empty"/>. The failure names the
+    /// property the rule is about, and the message states the rule that was broken and is safe to
+    /// report to the originator of the request.
     /// </exception>
-    public static EventRegistration Create(Event @event, string name)
+    public static EventRegistration Create(Event @event, string name, Guid idempotencyKey)
     {
         ArgumentNullException.ThrowIfNull(@event);
+
+        if (idempotencyKey == Guid.Empty)
+        {
+            throw new DomainException("An idempotency key is required to register.")
+            {
+                Key = nameof(IdempotencyKey)
+            };
+        }
 
         return new()
         {
             Event = @event,
-            Name = ValidateAndNormalizeName(name)
+            Name = ValidateAndNormalizeName(name),
+            IdempotencyKey = idempotencyKey
         };
     }
 
@@ -65,12 +81,14 @@ public class EventRegistration
     /// </remarks>
     /// <param name="event">The stored event the registration is held against, already rehydrated.</param>
     /// <param name="name">The stored name the player registered under.</param>
+    /// <param name="idempotencyKey">The stored key the registration was taken under.</param>
     /// <returns>The rehydrated registration.</returns>
-    public static EventRegistration Reconstitute(Event @event, string name) =>
+    public static EventRegistration Reconstitute(Event @event, string name, Guid idempotencyKey) =>
         new()
         {
             Event = @event,
-            Name = name
+            Name = name,
+            IdempotencyKey = idempotencyKey
         };
 
     private static string ValidateAndNormalizeName(string name)

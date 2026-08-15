@@ -39,6 +39,23 @@ public interface IEventRegistrationsRepository
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Retrieves the registration an event already holds under a key.
+    /// </summary>
+    /// <param name="event">The event to read the registration for, as read from the store.</param>
+    /// <param name="idempotencyKey">The key the registration would have been taken under.</param>
+    /// <param name="cancellationToken">Cancels the read before it completes.</param>
+    /// <returns>
+    /// The registration, or <see langword="null"/> when the event holds none under that key.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="event"/> is <see langword="null"/>.
+    /// </exception>
+    Task<EventRegistration?> GetRegistrationByIdempotencyKeyAsync(
+        Event @event,
+        Guid idempotencyKey,
+        CancellationToken cancellationToken);
+
+    /// <summary>
     /// Stages the insertion of a new registration.
     /// </summary>
     /// <remarks>

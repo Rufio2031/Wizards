@@ -14,7 +14,7 @@ internal sealed class RegistrationsService(
     IUnitOfWork unitOfWork) : IRegistrationsService
 {
     /// <inheritdoc />
-    public async Task<ApplicationError?> AddRegistration(
+    public async Task<WriteResult<RegistrationResponse>> AddRegistration(
         Guid eventId,
         CreateRegistrationRequest request,
         CancellationToken cancellationToken)
@@ -30,7 +30,15 @@ internal sealed class RegistrationsService(
 
         if (@event is null)
         {
-            return RegistrationErrors.EventNotFound;
+            return WriteResult<RegistrationResponse>.Failure(RegistrationErrors.EventNotFound);
+        }
+
+        WriteResult<RegistrationResponse>? heldRegistration =
+            await this.ReadRegistrationHeldByKey(@event, request.IdempotencyKey, cancellationToken);
+
+        if (heldRegistration is not null)
+        {
+            return heldRegistration;
         }
 
         int registrationCount = await registrationsRepository.CountRegistrationsAsync(
@@ -39,18 +47,19 @@ internal sealed class RegistrationsService(
 
         if (@event.IsFull(registrationCount))
         {
-            return RegistrationErrors.EventFull;
+            return WriteResult<RegistrationResponse>.Failure(RegistrationErrors.EventFull);
         }
 
         EventRegistration registration;
 
         try
         {
-            registration = EventRegistration.Create(@event, request.Name);
+            registration = EventRegistration.Create(@event, request.Name, request.IdempotencyKey);
         }
         catch (DomainException exception)
         {
-            return RegistrationErrors.Invalid(exception.Message, exception.Key);
+            return WriteResult<RegistrationResponse>.Failure(
+                RegistrationErrors.Invalid(exception.Message, exception.Key));
         }
 
         await registrationsRepository.AddRegistrationAsync(registration, cancellationToken);
@@ -61,10 +70,30 @@ internal sealed class RegistrationsService(
         }
         catch (StoreRuleViolationException)
         {
-            return RegistrationErrors.EventFull;
+            heldRegistration = await this.ReadRegistrationHeldByKey(
+                @event,
+                request.IdempotencyKey,
+                cancellationToken);
+
+            return heldRegistration
+                ?? WriteResult<RegistrationResponse>.Failure(RegistrationErrors.EventFull);
+        }
+        catch (StoreUniquenessViolationException)
+        {
+            heldRegistration = await this.ReadRegistrationHeldByKey(
+                @event,
+                request.IdempotencyKey,
+                cancellationToken);
+
+            if (heldRegistration is null)
+            {
+                throw;
+            }
+
+            return heldRegistration;
         }
 
-        return null;
+        return WriteResult<RegistrationResponse>.Success(new RegistrationResponse(registration));
     }
 
     /// <inheritdoc />
@@ -90,5 +119,21 @@ internal sealed class RegistrationsService(
         return registrations
             .Select(registration => new RegistrationResponse(registration))
             .ToList();
+    }
+
+    private async Task<WriteResult<RegistrationResponse>?> ReadRegistrationHeldByKey(
+        Event @event,
+        Guid idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        EventRegistration? heldRegistration =
+            await registrationsRepository.GetRegistrationByIdempotencyKeyAsync(
+                @event,
+                idempotencyKey,
+                cancellationToken);
+
+        return heldRegistration is null
+            ? null
+            : WriteResult<RegistrationResponse>.Success(new RegistrationResponse(heldRegistration));
     }
 }

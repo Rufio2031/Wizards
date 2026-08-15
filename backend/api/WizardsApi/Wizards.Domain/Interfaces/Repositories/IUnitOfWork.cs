@@ -16,5 +16,9 @@ public interface IUnitOfWork
     /// Thrown when the store refuses the commit because a rule it enforces itself, such as the number
     /// of registrations one event accepts, is broken. Nothing staged is persisted.
     /// </exception>
+    /// <exception cref="StoreUniquenessViolationException">
+    /// Thrown when the store refuses the commit because a row already holds the values a unique
+    /// constraint covers. Nothing staged is persisted.
+    /// </exception>
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

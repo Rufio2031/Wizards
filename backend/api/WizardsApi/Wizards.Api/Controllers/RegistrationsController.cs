@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Microsoft.AspNetCore.Mvc;
 
 using Wizards.Api.Extensions;
@@ -54,10 +56,14 @@ public class RegistrationsController(IRegistrationsService registrationsService)
     /// <param name="eventId">The identifier of the event to register for.</param>
     /// <param name="request">The player's details.</param>
     /// <param name="cancellationToken">Cancels the request before it completes.</param>
-    /// <returns>An empty success response.</returns>
-    /// <response code="200">The player was registered.</response>
+    /// <returns>The registration the player holds against the event.</returns>
+    /// <response code="200">
+    /// The player is registered. Repeating an idempotency key returns the registration it first took,
+    /// unchanged, rather than taking another.
+    /// </response>
     /// <response code="400">
-    /// The supplied details failed validation or break a rule about what makes a valid registration.
+    /// The supplied details failed validation, are missing an idempotency key, or break a rule about
+    /// what makes a valid registration.
     /// </response>
     /// <response code="404">
     /// No event carries the supplied identifier.
@@ -67,11 +73,11 @@ public class RegistrationsController(IRegistrationsService registrationsService)
     /// unchanged succeeds once a seat frees up.
     /// </response>
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType<RegistrationResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult> CreateRegistration(
+    public async Task<ActionResult<RegistrationResponse>> CreateRegistration(
         Guid eventId,
         [FromBody] CreateRegistrationRequest request,
         CancellationToken cancellationToken)
@@ -81,11 +87,16 @@ public class RegistrationsController(IRegistrationsService registrationsService)
             return this.NotFound();
         }
 
-        ApplicationError? error = await registrationsService.AddRegistration(
+        WriteResult<RegistrationResponse> result = await registrationsService.AddRegistration(
             eventId,
             request,
             cancellationToken);
 
-        return error is null ? this.Ok() : this.ToProblem(error);
+        return result switch
+        {
+            { Value: { } registration } => this.Ok(registration),
+            { Error: { } error } => this.ToProblem(error),
+            _ => throw new UnreachableException("Result carried neither a registration nor an error.")
+        };
     }
 }

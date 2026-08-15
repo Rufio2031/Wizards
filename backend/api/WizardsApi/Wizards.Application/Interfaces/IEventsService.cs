@@ -25,5 +25,7 @@ public interface IEventsService
     /// <param name="cancellationToken">Cancels the write.</param>
     /// <returns>The created event, or a failure naming the request field that broke a rule.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the request or its game type is null.</exception>
-    Task<EventWriteResult> AddEvent(CreateEventRequest request, CancellationToken cancellationToken);
+    Task<WriteResult<EventResponse>> AddEvent(
+        CreateEventRequest request,
+        CancellationToken cancellationToken);
 }

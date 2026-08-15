@@ -124,7 +124,7 @@ public sealed class EventsControllerTests
         CreateEventRequest request = BuildRequest();
 
         this.eventsService.AddEvent(request, Arg.Any<CancellationToken>())
-            .Returns(EventWriteResult.Success(created));
+            .Returns(WriteResult<EventResponse>.Success(created));
 
         ActionResult<EventResponse> result = await this.controller.CreateEvent(
             request,
@@ -144,7 +144,7 @@ public sealed class EventsControllerTests
         CreateEventRequest request = BuildRequest();
 
         this.eventsService.AddEvent(request, Arg.Any<CancellationToken>())
-            .Returns(EventWriteResult.Failure(EventErrors.GameTypeNotFound));
+            .Returns(WriteResult<EventResponse>.Failure(EventErrors.GameTypeNotFound));
 
         ActionResult<EventResponse> result = await this.controller.CreateEvent(
             request,
@@ -163,7 +163,7 @@ public sealed class EventsControllerTests
         CreateEventRequest request = BuildRequest();
 
         this.eventsService.AddEvent(request, Arg.Any<CancellationToken>())
-            .Returns(new EventWriteResult(null, null));
+            .Returns(new WriteResult<EventResponse>(null, null));
 
         await Assert.ThrowsAsync<UnreachableException>(
             () => this.controller.CreateEvent(request, CancellationToken.None));

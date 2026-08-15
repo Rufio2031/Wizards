@@ -117,11 +117,11 @@ public class EventsController(
         [FromBody] CreateEventRequest request,
         CancellationToken cancellationToken)
     {
-        EventWriteResult result = await eventsService.AddEvent(request, cancellationToken);
+        WriteResult<EventResponse> result = await eventsService.AddEvent(request, cancellationToken);
 
         return result switch
         {
-            { Event: { } createdEvent } => this.CreatedAtRoute(
+            { Value: { } createdEvent } => this.CreatedAtRoute(
                 nameof(GetEvent),
                 new { eventId = createdEvent.EventId },
                 createdEvent),

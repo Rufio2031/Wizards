@@ -11,6 +11,10 @@
 # running the create requests.
 @gameTypeId = 019ffa29-3bd1-735b-8852-ffcdc6a95c9b
 
+# The key the register and replay requests share. Change it to register again
+# rather than replay the registration this one already took.
+@registrationKey = 019ffa29-3bd1-735b-8852-ffcdc6a95c9d
+
 ### OpenAPI document (development only)
 GET {{baseUrl}}/openapi/v1.json
 Accept: application/json
@@ -118,13 +122,25 @@ Accept: application/json
   "gameType": { "gameTypeId": "00000000-0000-0000-0000-000000000001" }
 }
 
-### Register a player for an event (expects 200 with no body)
+### Register a player for an event (expects 200 with { "name": "Ada Lovelace" })
 POST {{baseUrl}}/events/{{eventId}}/registrations
 Content-Type: application/json
 Accept: application/json
 
 {
-  "name": "Ada Lovelace"
+  "name": "Ada Lovelace",
+  "idempotencyKey": "{{registrationKey}}"
+}
+
+### Replay the same registration (expects the identical 200 body, with no second registration taken)
+# Read the event's registrations afterwards to confirm Ada appears once.
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace",
+  "idempotencyKey": "{{registrationKey}}"
 }
 
 ### Register with an empty name (expects 400 with ValidationProblemDetails keyed by Name)
@@ -133,7 +149,17 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "name": ""
+  "name": "",
+  "idempotencyKey": "019ffa29-3bd1-735b-8852-ffcdc6a95c9e"
+}
+
+### Register with no idempotency key (expects 400 keyed by IdempotencyKey)
+POST {{baseUrl}}/events/{{eventId}}/registrations
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Ada Lovelace"
 }
 
 ### Register for an event that does not exist (expects 404 with ProblemDetails)
@@ -142,11 +168,13 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "name": "Ada Lovelace"
+  "name": "Ada Lovelace",
+  "idempotencyKey": "019ffa29-3bd1-735b-8852-ffcdc6a95c9f"
 }
 
 ### Register for a full event
-# Send the first request as many times as the event's registrationLimit, and the
-# next one responds 409 with { "errors": { "": [ "This event is full." ] } }.
+# Send the first request as many times as the event's registrationLimit, changing
+# idempotencyKey each time, and the next one responds 409 with
+# { "errors": { "": [ "This event is full." ] } }.
 
 ###

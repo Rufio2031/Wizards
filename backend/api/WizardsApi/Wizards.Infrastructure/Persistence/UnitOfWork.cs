@@ -14,6 +14,12 @@ internal sealed class UnitOfWork(AppDbContext dbContext) : IUnitOfWork
     /// </summary>
     private const int SqliteConstraintTrigger = 1811;
 
+    /// <summary>
+    /// The extended result SQLite reports when a write would duplicate the values a unique index
+    /// covers.
+    /// </summary>
+    private const int SqliteConstraintUnique = 2067;
+
     /// <inheritdoc />
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +35,16 @@ internal sealed class UnitOfWork(AppDbContext dbContext) : IUnitOfWork
         {
             throw new StoreRuleViolationException(
                 "The database refused the commit because a rule it enforces was broken.",
+                exception);
+        }
+        catch (DbUpdateException exception)
+            when (exception.InnerException is SqliteException
+                  {
+                      SqliteExtendedErrorCode: SqliteConstraintUnique
+                  })
+        {
+            throw new StoreUniquenessViolationException(
+                "The database refused the commit because a row already holds the values a unique constraint covers.",
                 exception);
         }
     }

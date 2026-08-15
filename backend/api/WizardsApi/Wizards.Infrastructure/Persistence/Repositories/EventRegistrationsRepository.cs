@@ -38,6 +38,24 @@ internal sealed class EventRegistrationsRepository(AppDbContext dbContext) : IEv
     }
 
     /// <inheritdoc />
+    public async Task<Domain.Entities.EventRegistration?> GetRegistrationByIdempotencyKeyAsync(
+        Domain.Entities.Event @event,
+        Guid idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+
+        Records.EventRegistration? registrationRecord = await dbContext.EventRegistrations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                registration => registration.EventId == @event.Id
+                                && registration.IdempotencyKey == idempotencyKey,
+                cancellationToken);
+
+        return registrationRecord?.ToEntity(@event);
+    }
+
+    /// <inheritdoc />
     public Task AddRegistrationAsync(
         Domain.Entities.EventRegistration registration,
         CancellationToken cancellationToken)

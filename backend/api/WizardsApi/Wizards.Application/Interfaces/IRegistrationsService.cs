@@ -20,7 +20,7 @@ public interface IRegistrationsService
     /// <param name="request">The player's details.</param>
     /// <param name="cancellationToken">Cancels the write before it completes.</param>
     /// <returns>
-    /// <see langword="null"/> once the registration is durable, or the reason nothing was written:
+    /// The registration once it is durable, or the reason nothing was written:
     /// <see cref="RegistrationErrors.EventNotFound"/> when no event carries the identifier,
     /// <see cref="RegistrationErrors.EventFull"/> when the event has taken every registration it
     /// accepts, or a <see cref="RegistrationErrors.Invalid"/> failure when the supplied details break
@@ -32,7 +32,7 @@ public interface IRegistrationsService
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="eventId"/> is <see cref="Guid.Empty"/>.
     /// </exception>
-    Task<ApplicationError?> AddRegistration(
+    Task<WriteResult<RegistrationResponse>> AddRegistration(
         Guid eventId,
         CreateRegistrationRequest request,
         CancellationToken cancellationToken);

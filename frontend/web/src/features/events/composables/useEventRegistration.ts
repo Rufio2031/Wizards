@@ -1,48 +1,61 @@
-import { toValue, type MaybeRefOrGetter } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
+import { createUuid } from '@/utils/uuid'
 
 import { eventsApi } from '../api/eventsApi'
-import type { CreateRegistrationRequest } from '../types/event'
+import type { CreateRegistrationRequest, Registration } from '../types/event'
+
+/** The composable owns the idempotency key, so a caller never supplies one. */
+export type RegisterRequest = Omit<CreateRegistrationRequest, 'idempotencyKey'>
 
 /**
  * Registers a player for an event and reports why an attempt failed.
  *
  * @param eventId The event being registered for.
- * @returns `isRegistered`, true once an attempt has succeeded, `isSaving`, the
- * `failure` from the last attempt with its messages split by the field the API
- * blamed, `register` to make an attempt, and `clearFailure` to drop a reported
- * failure once the player starts correcting it.
+ * @returns `registration`, the stored registration once an attempt has
+ * succeeded, `isRegistered`, `isSaving`, the `failure` from the last attempt
+ * with its messages split by the field the API blamed, `register` to make an
+ * attempt, and `clearFailure` to drop a reported failure once the player starts
+ * correcting it.
  */
 export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
+  const idempotencyKey = createUuid()
+
   const {
-    data: isRegistered,
+    data: registration,
     isLoading: isSaving,
     failure,
     clearError: clearFailure,
     run,
-  } = useAsyncRequest<boolean, CreateRegistrationRequest>(
-    async (options, request) => {
-      await eventsApi.register(toValue(eventId), request, options)
-
-      return true
+  } = useAsyncRequest<Registration | null, RegisterRequest>(
+    (options, request) =>
+      eventsApi.register(
+        toValue(eventId),
+        { ...request, idempotencyKey },
+        options,
+      ),
+    {
+      initialValue: null,
+      failureMessage: 'Registering for the event failed.',
     },
-    { initialValue: false, failureMessage: 'Registering for the event failed.' },
   )
 
-  let inFlight: Promise<boolean | null> | null = null
+  const isRegistered = computed(() => registration.value !== null)
+
+  let inFlight: Promise<Registration | null> | null = null
 
   /**
    * Registers the player, or joins the attempt already running.
    *
-   * Registering is not idempotent, so a double-tapped button must not start a
-   * second request. Aborting the first would only stop this client from hearing
-   * the answer: the server may already have taken the seat, leaving the player
-   * registered twice and a page that thinks they failed.
+   * The idempotency key makes a second request harmless, so the guard is only
+   * there to avoid a redundant call from a double-tapped button. Aborting the
+   * first would only stop this client from hearing the answer, leaving a player
+   * the server has already seated looking at a page that thinks they failed.
    *
    * @param request The player to register.
    */
-  async function register(request: CreateRegistrationRequest): Promise<void> {
+  async function register(request: RegisterRequest): Promise<void> {
     if (inFlight) {
       await inFlight
 
@@ -58,5 +71,12 @@ export function useEventRegistration(eventId: MaybeRefOrGetter<string>) {
     }
   }
 
-  return { isRegistered, isSaving, failure, register, clearFailure }
+  return {
+    registration,
+    isRegistered,
+    isSaving,
+    failure,
+    register,
+    clearFailure,
+  }
 }

@@ -15,4 +15,7 @@ internal sealed class EventRegistration
 
     /// <summary>Gets or sets the name the player registered under.</summary>
     public required string Name { get; set; }
+
+    /// <summary>Gets or sets the key the registration was taken under.</summary>
+    public required Guid IdempotencyKey { get; set; }
 }
